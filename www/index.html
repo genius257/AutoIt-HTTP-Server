@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			html{
+				height:100vh;
+			}
+			html, body{
+				margin:0;
+				padding:0;
+				width:100%;
+			}
+			body{
+				min-height:100vh;
+				background-image:url("./img/logo.png");
+				background-repeat:no-repeat;
+				background-position:center center;
+			}
+			div{
+				position:absolute;
+				left:50%;
+				top:50%;
+				transform: translate(-50%, -50%);
+				width:700px;
+				min-height:90%;
+				margin:0 auto;
+				background-color:rgba(0,0,0,0.5);
+				padding:20px;
+				box-sizing:border-box;
+				color:#FFF;
+			}
+		</style>
+	</head>
+	<body>
+		<div>
+			<h2 style="text-align:center;">AutoIt HTTP Web Server</h2>
+			To add PHP functionality:
+			<ul>
+				<li>
+					Download your desired version from <a href="http://windows.php.net/download" target="blank">here</a>
+				</li>
+				<li>
+					Create a new folder in the same directory as the server script
+				</li>
+				<li>
+					Extract the archive to the newly created folder
+				</li>
+				<li>
+					Open settings.ini and set the <b>PHP_Path</b> value to the folder name
+				</li>
+				<li>
+					<b>Optional:</b> If you want to allow or disallow indexing if a directory is requested and no index file is found:
+					<ul>
+						<li>
+							Open settings.ini and set <b>AllowIndexes</b> to True or False, depending on your need.
+						</li>
+					</ul>
+				</li>
+				<li>
+					(Re-)Start the server
+				</li>
+			</ul>
+		</div>
+	</body>
+</html>
