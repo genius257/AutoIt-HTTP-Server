@@ -1,4 +1,4 @@
-#AuotIt HTTP Server
+# AuoIt HTTP Server
 
 My additions/modifications to [__jvanegmond__](https://www.autoitscript.com/forum/profile/10412-jvanegmond/)'s POST Server
 
@@ -6,7 +6,7 @@ The original source can be found [__here__](https://www.autoitscript.com/forum/t
 
 Added:
 
-- GET variables are now supported, instead for being included as the file name
+- Query strings are now supported, instead for being included as the file name/path
 - PHP support
 - More MIME types
 - 404 status code when returning the 404 response
@@ -14,7 +14,8 @@ Added:
 - Support for multiple index files, a bit like apatche's DirectoryIndex
 - 403 status code if no index is found, instead of sending a stream of no file
 - Removed double newline at end of "_HTTP_SendData" it appended to any file and seemed to not be needed.
-- Added if statment with continue case in case the PHP path is not set or does not exist(when loading settings)
+- Added [If...Then](https://www.autoitscript.com/autoit3/docs/keywords/If.htm) statment with [ContinueCase](https://www.autoitscript.com/autoit3/docs/keywords/ContinueCase.htm) in case required PHP files is not present
+- Server URI does now support precent encoding
 
 Looking into:
 
@@ -22,6 +23,5 @@ Looking into:
 - MySQL
 - If-Modified-Since header
 - 401 status code, possibly followed by a 403 status code
-- server URI does not currently support space (%20) and other special characters
 - HEAD Method support
-- Maybe adding __FindFirstChangeNotification__ with server to watch __settings.ini__ file for change, to avoid restarting to apply the changes.
+- Maybe adding [FindFirstChangeNotification](https://www.autoitscript.com/autoit3/docs/libfunctions/_WinAPI_FindFirstChangeNotification.htm) with server to watch __settings.ini__ file for changes, to avoid restarting to apply the changes.

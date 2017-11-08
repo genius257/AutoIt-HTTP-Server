@@ -1,21 +1,10 @@
-#cs
-Resources:
-    Internet Assigned Number Authority - all Content-Types: http://www.iana.org/assignments/media-types/
-    World Wide Web Consortium - An overview of the HTTP protocol: http://www.w3.org/Protocols/
-
-Credits:
-    Manadar for starting on the webserver.
-    Alek for adding POST and some fixes
-    Creator for providing the "application/octet-stream" MIME type.
-#ce
-
 #include <Array.au3>
 #include <NamedPipes.au3>
 #include <WinAPI.au3>
 #include <WinAPIProc.au3>
 #include <WinAPIFiles.au3>
 
-; // OPTIONS HERE //
+#Region // OPTIONS HERE //
 Local $sRootDir = @ScriptDir & "\www" ; The absolute path to the root directory of the server.
 ;~ Local $sIP = @IPAddress1 ; ip address as defined by AutoIt
 ;~ Local $sIP = "127.0.0.1"
@@ -28,7 +17,7 @@ Local $DirectoryIndex=IniRead("settings.ini", "core", "DirectoryIndex", "index.h
 
 Local $PHP_Path = IniRead("settings.ini", "PHP", "PHP_Path", "")
 Local $bAllowIndexes=IniRead("settings.ini", "PHP", "AllowIndexes", False)
-; // END OF OPTIONS //
+#EndRegion // END OF OPTIONS //
 
 If $iMaxUsers<1 Then Exit MsgBox(0x10, "AutoIt HTTP Sever", "MaxUsers is less than one."&@CRLF&"The server will now close")
 If $DirectoryIndex = "" Then $DirectoryIndex = "index.html"
@@ -87,10 +76,13 @@ While 1
 					If StringInStr(StringReplace($sRequest,"\","/"), "/.") Then ; Disallow any attempts to go back a folder
 						_HTTP_SendFileNotFoundError($aSocket[$x]) ; sends back an error
 					Else
+						$sRequest = _URIDecode($sRequest)
+
 						$QUERY_STRING = StringInStr($sRequest, "?")>0 ? StringMid($sRequest, StringInStr($sRequest, "?")+1) : ""
 						$sRequest = StringMid($sRequest, 1, StringInStr($sRequest, "?")-1)
 ;~ 						If $sRequest = "/" Then ; user has requested the root
-						ConsoleWrite($sRootDir & "\" & StringReplace($sRequest,"/","\")&@CRLF)
+						$sLocalPath = _WinAPI_GetFullPathName($sRootDir & "\" & StringReplace($sRequest,"/","\"));TODO: replace every instance of ($sRootDir & "\" & $sRequest) with $sLocalPath
+						ConsoleWrite($sLocalPath&@CRLF)
 						If StringInStr(FileGetAttrib($sRootDir & "\" & StringReplace($sRequest,"/","\")),"D")>0 Then ; user has requested a directory
 							Local $iStart=1
 							Local $iEnd=StringInStr($DirectoryIndex, ",")-$iStart
@@ -408,3 +400,32 @@ Func _HTTP_Post($sName,$sArray) ; Returns a POST variable like a associative arr
     Next
     Return ""
 EndFunc
+
+Func _URIEncode($sData)
+    ; Prog@ndy
+    Local $aData = StringSplit(BinaryToString(StringToBinary($sData,4),1),"")
+    Local $nChar
+    $sData=""
+    For $i = 1 To $aData[0]
+        ; ConsoleWrite($aData[$i] & @CRLF)
+        $nChar = Asc($aData[$i])
+        Switch $nChar
+            Case 45, 46, 48 To 57, 65 To 90, 95, 97 To 122, 126
+                $sData &= $aData[$i]
+            Case 32
+                $sData &= "+"
+            Case Else
+                $sData &= "%" & Hex($nChar,2)
+        EndSwitch
+    Next
+    Return $sData
+EndFunc;https://www.autoitscript.com/forum/topic/95850-url-encoding/?do=findComment&comment=689060
+Func _URIDecode($sData)
+    ; Prog@ndy
+    Local $aData = StringSplit(StringReplace($sData,"+"," ",0,1),"%")
+    $sData = ""
+    For $i = 2 To $aData[0]
+        $aData[1] &= Chr(Dec(StringLeft($aData[$i],2))) & StringTrimLeft($aData[$i],2)
+    Next
+    Return BinaryToString(StringToBinary($aData[1],1),4)
+EndFunc;https://www.autoitscript.com/forum/topic/95850-url-encoding/?do=findComment&comment=689060
