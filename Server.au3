@@ -176,12 +176,6 @@ While 1
 					EndIf
 				EndIf
 			Case "POST" ; user has come to us with data, we need to parse that data and based on that do something special
-				$aPOST = _HTTP_GetPost($sBuffer[$x]) ; parses the post data
-
-				$sComment = _HTTP_POST("wintext",$aPOST) ; Like PHPs _POST, but it requires the second parameter to be the return value from _Get_Post
-
-				_HTTP_ConvertString($sComment) ; Needs to convert the POST HTTP string into a normal string
-
 				_HTTP_SendFile($aSocket[$x], $sRootDir & "\index.html", "text/html") ; Sends back the new file we just created
 			Case Else
 				_HTTP_SendHTML($aSocket[$x], "", "501 Not Implemented")
@@ -195,15 +189,6 @@ While 1
 	Sleep(10)
 WEnd
 
-Func _HTTP_ConvertString(ByRef $sInput) ; converts any characters like %20 into space 8)
-	$sInput = StringReplace($sInput, '+', ' ')
-	StringReplace($sInput, '%', '')
-	For $t = 0 To @extended
-		$Find_Char = StringLeft( StringTrimLeft($sInput, StringInStr($sInput, '%')) ,2)
-		$sInput = StringReplace($sInput, '%' & $Find_Char, Chr(Dec($Find_Char)))
-	Next
-EndFunc
-
 Func _HTTP_SendHeaders($hSocket, $headers)
 	_HTTP_SendContent($hSocket, $headers)
 EndFunc
@@ -214,9 +199,6 @@ Func _HTTP_SendContent($hSocket, $bData)
 		$a = TCPSend($hSocket, $bData) ; TCPSend returns the number of bytes sent
 		$bData = BinaryMid($bData, $a+1, BinaryLen($bData)-$a)
 	WEnd
-
-	;$sPacket = Binary(@CRLF & @CRLF) ; Finish the packet
-	;TCPSend($hSocket,$sPacket)
 EndFunc
 
 Func _HTTP_SendChunk($hSocket, $bData)
@@ -291,68 +273,6 @@ Func _HTTP_SendFileNotFoundError($hSocket) ; Sends back a basic 404 error
 		_HTTP_SendHTML($hSocket, "404 Error: " & @CRLF & @CRLF & "The file you requested could not be found.", "404 Not Found")
 	EndIf
 EndFunc
-
-Func _HTTP_GetPost($s_Buffer) ; parses incoming POST data
-	Local $sTempPost, $sLen, $sPostData, $sTemp
-
-	; Get the lenght of the data in the POST
-	$sTempPost = StringTrimLeft($s_Buffer,StringInStr($s_Buffer,"Content-Length:"))
-	$sLen = StringTrimLeft($sTempPost,StringInStr($sTempPost,": "))
-
-	; Create the base struck
-	$sPostData = StringSplit(StringRight($s_Buffer,$sLen),"&")
-
-	Local $sReturn[$sPostData[0]+1][2]
-
-	For $t = 1 To $sPostData[0]
-		$sTemp = StringSplit($sPostData[$t],"=")
-		If $sTemp[0] >= 2 Then
-			$sReturn[$t][0] = $sTemp[1]
-			$sReturn[$t][1] = $sTemp[2]
-		EndIf
-	Next
-
-	Return $sReturn
-EndFunc
-
-Func _HTTP_Post($sName,$sArray) ; Returns a POST variable like a associative array.
-	For $i = 1 to UBound($sArray)-1
-		If $sArray[$i][0] = $sName Then
-			Return $sArray[$i][1]
-		EndIf
-	Next
-	Return ""
-EndFunc
-
-Func _URIEncode($sData)
-	; Prog@ndy
-	Local $aData = StringSplit(BinaryToString(StringToBinary($sData,4),1),"")
-	Local $nChar
-	$sData=""
-	For $i = 1 To $aData[0]
-		; ConsoleWrite($aData[$i] & @CRLF)
-		$nChar = Asc($aData[$i])
-		Switch $nChar
-			Case 45, 46, 48 To 57, 65 To 90, 95, 97 To 122, 126
-				$sData &= $aData[$i]
-			Case 32
-				$sData &= "+"
-			Case Else
-				$sData &= "%" & Hex($nChar,2)
-		EndSwitch
-	Next
-	Return $sData
-EndFunc;https://www.autoitscript.com/forum/topic/95850-url-encoding/?do=findComment&comment=689060
-
-Func _URIDecode($sData)
-	; Prog@ndy
-	Local $aData = StringSplit(StringReplace($sData,"+"," ",0,1),"%")
-	$sData = ""
-	For $i = 2 To $aData[0]
-		$aData[1] &= Chr(Dec(StringLeft($aData[$i],2))) & StringTrimLeft($aData[$i],2)
-	Next
-	Return BinaryToString(StringToBinary($aData[1],1),4)
-EndFunc;https://www.autoitscript.com/forum/topic/95850-url-encoding/?do=findComment&comment=689060
 
 #cs
 # Parse URI into segments
@@ -552,7 +472,6 @@ Func _HTTP_GCI_PHP()
 
 	Local $hProcess = DllStructGetData($tProcess, "hProcess")
 	_WinAPI_CloseHandle(DllStructGetData($tProcess, "hThread"))
-		;Local $tBuffer = DllStructCreate("wchar Text[4096]")
 		Local $tBuffer = DllStructCreate("char Text[4096]")
 		Local $pBuffer = DllStructGetPtr($tBuffer)
 		Local $iBytes
