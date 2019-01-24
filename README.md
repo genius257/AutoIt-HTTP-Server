@@ -1,4 +1,4 @@
-# AuoIt HTTP Server
+# AutoIt HTTP Server
 
 My additions/modifications to [__jvanegmond__](https://www.autoitscript.com/forum/profile/10412-jvanegmond/)'s POST Server
 
