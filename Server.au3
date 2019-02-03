@@ -65,7 +65,7 @@ If @error Then ; if you fail creating a socket, exit the application
 	Exit ; if your server is part of a GUI that has nothing to do with the server, you'll need to remove the Exit keyword and notify the user that the HTTP server will not work.
 EndIf
 
-ConsoleWrite( "Server created on " & $sServerAddress & @CRLF)
+Debug("Server created on " & $sServerAddress)
 
 While 1
 	$iNewSocket = TCPAccept($iMainSocket) ; Tries to accept incoming connections
@@ -74,7 +74,7 @@ While 1
 		For $x = 0 to UBound($aSocket)-1 ; Attempts to store the incoming connection
 			If $aSocket[$x] = -1 Then
 				$aSocket[$x] = $iNewSocket ;store the new socket
-				ConsoleWrite("Accepted new request on position: "&$x&@CRLF)
+				Debug("Accepted new request on position: "&$x)
 				ExitLoop
 			EndIf
 		Next
@@ -84,12 +84,12 @@ While 1
 	For $x = 0 to UBound($aSocket)-1 ; A big loop to receive data from everyone connected
 		If $aSocket[$x] = -1 Then ContinueLoop ; if the socket is empty, it will continue to the next iteration, doing nothing
 
-		ConsoleWrite("("&$aSocket[$x]&")Getting request information on position: "&$x&@CRLF)
+		Debug("("&$aSocket[$x]&")Getting request information on position: "&$x)
 
 		$sNewData = TCPRecv($aSocket[$x], 1024, 1) ; Receives a whole lot of data if possible
 		If @error <> 0 Or @extended<>0 Then ; Client has disconnected
 			TCPCloseSocket($aSocket[$x])
-			ConsoleWrite("Client has disconnected on position: "&$x&@CRLF)
+			Debug("Client has disconnected on position: "&$x)
 			$aSocket[$x] = -1 ; Socket is freed so that a new user may join
 			$sBuffer[$x] = ""
 			ContinueLoop ; Go to the next iteration of the loop, not really needed but looks oh so good
@@ -97,7 +97,7 @@ While 1
 
 		$sNewData = BinaryToString($sNewData) ; Receives a whole lot of data if possible
 
-		ConsoleWrite(VarGetType($sNewData)&"("&StringLen($sNewData)&"): "&$sNewData&@CRLF)
+		Debug(VarGetType($sNewData)&"("&StringLen($sNewData)&"): "&$sNewData)
 		$sBuffer[$x] &= $sNewData ;store it in the buffer
 
 		If StringInStr(StringStripCR($sBuffer[$x]),@LF&@LF) Then ; if the request headers are ready ..
@@ -108,7 +108,7 @@ While 1
 			ContinueLoop
 		EndIf
 
-		ConsoleWrite("Starting processing request on position: "&$x&@CRLF)
+		Debug("Starting processing request on position: "&$x)
 
 		$sFirstLine = "";StringLeft($sBuffer[$x],StringInStr($sBuffer[$x],@LF)) ; helps to get the type of the request
 		
@@ -116,9 +116,9 @@ While 1
 		$aHeaders = _HTTP_ParseHttpHeaders($aRequest[$HttpRequest_HEADERS])
 		$aUri = _HTTP_ParseURI($aRequest[$HttpRequest_URI])
 
-		ConsoleWrite("aUri[Path]: "&$aUri[$HttpUri_Path]&@CRLF)
-		;ConsoleWrite("aUri[Query]: "&$aUri[$httpUri_Query]&@CRLF)
-		;ConsoleWrite("LocalPath: " & _WinAPI_GetFullPathName($sRootDir & "\" & $aUri[$HttpUri_Path])&@CRLF)
+		Debug("aUri[Path]: "&$aUri[$HttpUri_Path])
+		;Debug("aUri[Query]: "&$aUri[$httpUri_Query])
+		;Debug("LocalPath: " & _WinAPI_GetFullPathName($sRootDir & "\" & $aUri[$HttpUri_Path]))
 
 		Switch $aRequest[$HttpRequest_METHOD]
 			Case "HEAD"
@@ -226,7 +226,7 @@ Func _HTTP_SendFile($hSocket, $sFileLoc, $sMimeType = Default, $sReply = "200 OK
 	FileClose($hFile)
 
 	If $bLastModified Then $aFileLastModified = FileGetTime($sFileLoc, 0, 0)
-	;ConsoleWrite($aFileLastModified&@CRLF)
+	;Debug($aFileLastModified)
 	_HTTP_SendData($hSocket, $bFileData, $sMimeType, $sReply, $bLastModified?StringFormat("%s, %s %s %s %s:%s:%s GMT", $wDays[_DateToDayOfWeek($aFileLastModified[0], $aFileLastModified[1], $aFileLastModified[2])-1], $aFileLastModified[2], $months[$aFileLastModified[1]-1], $aFileLastModified[0], $aFileLastModified[3], $aFileLastModified[4], $aFileLastModified[5]):"")
 EndFunc
 
@@ -503,4 +503,10 @@ Func _HTTP_GCI_PHP()
 		TCPCloseSocket($aSocket[$x])
 	_WinAPI_CloseHandle($hProcess)
 	_WinAPI_CloseHandle($hReadPipe)
+EndFunc
+
+Func Debug($vLog, $nl = True, $ln = @ScriptLineNumber)
+	Local Static $time = TimerInit()
+	If Not @Compiled Then Return
+	ConsoleWrite(StringFormat("(%04s) %s %+dms%s", $ln, $vLog, TimerDiff($time), $nl ? @CRLF : ""))
 EndFunc
