@@ -468,7 +468,7 @@ Func _HTTP_GCI_PHP()
 	Chr(0);missing: USER_AGENT, REFERER, SERVER_PROTOCOL
 	$tEnviroment=DllStructCreate("WCHAR["&StringLen($sEnviroment)&"]")
 	DllStructSetData($tEnviroment, 1, $sEnviroment)
-	_WinAPI_CreateProcess(@ScriptDir&"\php-7.2.0RC4-nts-Win32-VC15-x86\php-cgi.exe", " -f """ & $sLocalPath & """ " & $QUERY_STRING, Null, Null, True, $CREATE_NO_WINDOW+$NORMAL_PRIORITY_CLASS+$CREATE_UNICODE_ENVIRONMENT, DllStructGetPtr($tEnviroment), $sRootDir, DllStructGetPtr($tStartup), DllStructGetPtr($tProcess))
+	_WinAPI_CreateProcess($PHP_Path&"\php-cgi.exe", "-f """ & $sLocalPath & """ " & $QUERY_STRING, Null, Null, True, $CREATE_NO_WINDOW+$NORMAL_PRIORITY_CLASS+$CREATE_UNICODE_ENVIRONMENT, DllStructGetPtr($tEnviroment), $sRootDir, DllStructGetPtr($tStartup), DllStructGetPtr($tProcess))
 
 	Local $hProcess = DllStructGetData($tProcess, "hProcess")
 	_WinAPI_CloseHandle(DllStructGetData($tProcess, "hThread"))
@@ -479,6 +479,7 @@ Func _HTTP_GCI_PHP()
 		Local $a
 		Local $STILL_ACTIVE = 0x103
 
+		;FIXME: move start of packet down and merge headers with php CGI output
 		Local $sPacket = Binary("HTTP/1.1 200 OK" & @CRLF & _
 			"Server: " & $sServerName & @CRLF & _
 			"Connection: Keep-Alive" & @CRLF & _
@@ -535,7 +536,7 @@ Func _HTTP_GCI_PHP2()
 	$tEnviroment=DllStructCreate("WCHAR["&StringLen($sEnviroment)&"]")
 	DllStructSetData($tEnviroment, 1, $sEnviroment)
 	ConsoleWrite($sRootDir&@CRLF)
-	_WinAPI_CreateProcess(@ScriptDir&"\php-7.2.0RC4-nts-Win32-VC15-x86\php-cgi.exe", " -f """ & @ScriptDir & "\index.php" & """", Null, Null, True, $CREATE_NO_WINDOW+$NORMAL_PRIORITY_CLASS+$CREATE_UNICODE_ENVIRONMENT, DllStructGetPtr($tEnviroment), $sRootDir, DllStructGetPtr($tStartup), DllStructGetPtr($tProcess))
+	_WinAPI_CreateProcess($PHP_Path&"\php-cgi.exe", """" & @ScriptDir & "\index.php" & """", Null, Null, True, $CREATE_NO_WINDOW+$NORMAL_PRIORITY_CLASS+$CREATE_UNICODE_ENVIRONMENT, DllStructGetPtr($tEnviroment), $sRootDir, DllStructGetPtr($tStartup), DllStructGetPtr($tProcess))
 
 	Local $hProcess = DllStructGetData($tProcess, "hProcess")
 	_WinAPI_CloseHandle(DllStructGetData($tProcess, "hThread"))
