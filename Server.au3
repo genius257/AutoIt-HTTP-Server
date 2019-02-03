@@ -32,9 +32,9 @@ Global Const $FMFD_RETURNUPDATEDIMGMIMES = 0x00000020
 	Local $iMaxUsers =  Int(IniRead("settings.ini", "core", "MaxUsers", 15)); Maximum number of users who can simultaneously get/post
 	Local $sServerName = "AutoIt HTTP Server/0.1 (" & @OSVersion & ") AutoIt/" & @AutoItVersion
 	Local $DirectoryIndex=IniRead("settings.ini", "core", "DirectoryIndex", "index.html")
+	Local $bAllowIndexes=IniRead("settings.ini", "core", "AllowIndexes", False)
 
 	Local $PHP_Path = IniRead("settings.ini", "PHP", "PHP_Path", "")
-	Local $bAllowIndexes=IniRead("settings.ini", "PHP", "AllowIndexes", False)
 #EndRegion // END OF OPTIONS //
 
 ;TODO: add server gui
