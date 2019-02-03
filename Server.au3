@@ -147,7 +147,6 @@ While 1
 						;$sLocalPath = $sLocalPath & $sIndex
 						If Not FileExists($sLocalPath&$sIndex) Then
 							If $bAllowIndexes Then;And FileExists(@ScriptDir & "\index.php") Then
-								;_HTTP_GCI_PHP2()
 								_HTTP_IndexDir($aSocket[$x], $sLocalPath)
 							Else
 								_HTTP_SendHTML($aSocket[$x], "403 Forbidden", "403 Forbidden")
@@ -480,74 +479,6 @@ Func _HTTP_GCI_PHP()
 		Local $STILL_ACTIVE = 0x103
 
 		;FIXME: move start of packet down and merge headers with php CGI output
-		Local $sPacket = Binary("HTTP/1.1 200 OK" & @CRLF & _
-			"Server: " & $sServerName & @CRLF & _
-			"Connection: Keep-Alive" & @CRLF & _
-			"Content-Type: text/html; charset=UTF-8" & @CRLF & _
-			"Transfer-Encoding: chunked" & @CRLF & @CRLF )
-			TCPSend($aSocket[$x],$sPacket) ; Send start of packet
-
-		_WinAPI_CloseHandle($hWritePipe)
-		While 1
-			If Not _WinAPI_ReadFile($hReadPipe, $pBuffer, 4096, $iBytes) Then ExitLoop
-			If $iBytes>0 Then
-				;$bData = Binary(StringRegExpReplace(Hex($iBytes), "^0+", "")&@CRLF& StringLeft(DllStructGetData($tBuffer, "Text"), $iBytes / 2) &@CRLF)
-				$bData = Binary(StringRegExpReplace(Hex($iBytes), "^0+", "")&@CRLF& StringLeft(DllStructGetData($tBuffer, "Text"), $iBytes) &@CRLF)
-				While BinaryLen($bData) ; Send data in chunks (most code by Larry)
-					$a = TCPSend($aSocket[$x], $bData) ; TCPSend returns the number of bytes sent
-					$bData = BinaryMid($bData, $a+1, BinaryLen($bData)-$a)
-				WEnd
-			EndIf
-		WEnd
-		$sPacket = Binary("0"&@CRLF&@CRLF) ; Finish the packet
-		TCPSend($aSocket[$x],$sPacket)
-		TCPCloseSocket($aSocket[$x])
-	_WinAPI_CloseHandle($hProcess)
-	_WinAPI_CloseHandle($hReadPipe)
-EndFunc
-
-;FIXME: merege with funtion _HTTP_GCI_PHP
-Func _HTTP_GCI_PHP2()
-	Local $hReadPipe, $hWritePipe
-	Local $STARTF_USESTDHANDLES = 0x100
-	; Set up security attributes
-	$tSecurity = DllStructCreate($tagSECURITY_ATTRIBUTES)
-	DllStructSetData($tSecurity, "Length", DllStructGetSize($tSecurity))
-	DllStructSetData($tSecurity, "InheritHandle", True)
-	_NamedPipes_CreatePipe($hReadPipe, $hWritePipe, $tSecurity)
-	$tProcess = DllStructCreate($tagPROCESS_INFORMATION)
-	$tStartup = DllStructCreate($tagSTARTUPINFO)
-	DllStructSetData($tStartup, "Size", DllStructGetSize($tStartup))
-	DllStructSetData($tStartup, "Flags", $STARTF_USESTDHANDLES)
-	DllStructSetData($tStartup, "StdOutput", $hWritePipe)
-	DllStructSetData($tStartup, "StdError", $hWritePipe)
-
-	;Local $tSockaddr = DllStructCreate("ushort sa_family;char sa_data[14];")
-	Local $tSockaddr = DllStructCreate("short;ushort;uint;char[8]")
-	Local $aRet = DllCall("Ws2_32.dll", "int", "getpeername", "int", $aSocket[$x], "ptr", DllStructGetPtr($tSockaddr), "int*", DllStructGetSize($tSockaddr))
-	Local $aRet = DllCall("Ws2_32.dll", "str", "inet_ntoa", "int", DllStructGetData($tSockaddr, 3))
-
-	$sEnviroment="SCRIPT_NAME="&StringMid($sRequest,StringInStr($sRequest, "\", 0, -1)+1)&Chr(0)& _
-	"REMOTE_ADDR="&$aRet[0]&Chr(0)& _
-	"REQUESTED_METHOD=GET"&Chr(0)& _
-	"REQUEST_URI="&StringTrimRight(StringTrimLeft($sFirstLine,4),11)&Chr(0)& _
-	"QUERY_STRING="&Chr(0)& _
-	Chr(0);missing: USER_AGENT, REFERER, SERVER_PROTOCOL
-	$tEnviroment=DllStructCreate("WCHAR["&StringLen($sEnviroment)&"]")
-	DllStructSetData($tEnviroment, 1, $sEnviroment)
-	ConsoleWrite($sRootDir&@CRLF)
-	_WinAPI_CreateProcess($PHP_Path&"\php-cgi.exe", """" & @ScriptDir & "\index.php" & """", Null, Null, True, $CREATE_NO_WINDOW+$NORMAL_PRIORITY_CLASS+$CREATE_UNICODE_ENVIRONMENT, DllStructGetPtr($tEnviroment), $sRootDir, DllStructGetPtr($tStartup), DllStructGetPtr($tProcess))
-
-	Local $hProcess = DllStructGetData($tProcess, "hProcess")
-	_WinAPI_CloseHandle(DllStructGetData($tProcess, "hThread"))
-		;Local $tBuffer = DllStructCreate("wchar Text[4096]")
-		Local $tBuffer = DllStructCreate("char Text[4096]")
-		Local $pBuffer = DllStructGetPtr($tBuffer)
-		Local $iBytes
-		Local $bData
-		Local $a
-		Local $STILL_ACTIVE = 0x103
-
 		Local $sPacket = Binary("HTTP/1.1 200 OK" & @CRLF & _
 			"Server: " & $sServerName & @CRLF & _
 			"Connection: Keep-Alive" & @CRLF & _
