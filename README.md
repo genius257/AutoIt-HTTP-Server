@@ -16,6 +16,7 @@ Added:
 - Removed double newline at end of "_HTTP_SendData" it appended to any file and seemed to not be needed.
 - Added [If...Then](https://www.autoitscript.com/autoit3/docs/keywords/If.htm) statment with [ContinueCase](https://www.autoitscript.com/autoit3/docs/keywords/ContinueCase.htm) in case required PHP files is not present
 - Server URI does now support precent encoding
+- AU3 CGI support
 
 Looking into:
 
