@@ -35,6 +35,7 @@ Global Const $FMFD_RETURNUPDATEDIMGMIMES = 0x00000020
 	Local $bAllowIndexes=IniRead("settings.ini", "core", "AllowIndexes", False)
 
 	Local $PHP_Path = IniRead("settings.ini", "PHP", "PHP_Path", "")
+	Local $AU3_Path = IniRead("settings.ini", "AU3", "Path", "")
 #EndRegion // END OF OPTIONS //
 
 ;TODO: add server gui
@@ -46,6 +47,12 @@ If Not ($PHP_Path="") Then
 	$PHP_Path=_WinAPI_GetFullPathName($PHP_Path&"\")
 	If Not FileExists($PHP_Path&"php-cgi.exe") Then $PHP_Path=""
 EndIf
+
+If Not ($AU3_Path="") Then
+	$AU3_Path=_WinAPI_GetFullPathName($AU3_Path&"\")
+	If Not FileExists($AU3_Path&"AutoIt3.exe") Then $AU3_Path=""
+EndIf
+
 ;TODO: php is no longer associated with doing indexing of folders
 If IsString($bAllowIndexes) Then $bAllowIndexes=((StringLower($bAllowIndexes)=="true")?True : False)
 ;If $PHP_Path = "" Then $bAllowIndexes = False
@@ -167,6 +174,9 @@ While 1
 							Case "php"
 								If $PHP_Path = "" Then ContinueCase;if php path is not set, it will default to the "Case Else"
 								_HTTP_GCI_PHP()
+							Case "au3"
+								If $AU3_Path = "" Then ContinueCase;if au3 path is not set, it will default to the "Case Else"
+								_HTTP_GCI_AU3()
 							Case Else
 								_HTTP_SendFile($aSocket[$x], $sLocalPath, Default, "200 OK", True)
 						EndSwitch
@@ -468,6 +478,73 @@ Func _HTTP_GCI_PHP()
 	$tEnviroment=DllStructCreate("WCHAR["&StringLen($sEnviroment)&"]")
 	DllStructSetData($tEnviroment, 1, $sEnviroment)
 	_WinAPI_CreateProcess($PHP_Path&"\php-cgi.exe", "-f """ & $sLocalPath & """ " & $QUERY_STRING, Null, Null, True, $CREATE_NO_WINDOW+$NORMAL_PRIORITY_CLASS+$CREATE_UNICODE_ENVIRONMENT, DllStructGetPtr($tEnviroment), $sRootDir, DllStructGetPtr($tStartup), DllStructGetPtr($tProcess))
+
+	Local $hProcess = DllStructGetData($tProcess, "hProcess")
+	_WinAPI_CloseHandle(DllStructGetData($tProcess, "hThread"))
+		Local $tBuffer = DllStructCreate("char Text[4096]")
+		Local $pBuffer = DllStructGetPtr($tBuffer)
+		Local $iBytes
+		Local $bData
+		Local $a
+		Local $STILL_ACTIVE = 0x103
+
+		;FIXME: move start of packet down and merge headers with php CGI output
+		Local $sPacket = Binary("HTTP/1.1 200 OK" & @CRLF & _
+			"Server: " & $sServerName & @CRLF & _
+			"Connection: Keep-Alive" & @CRLF & _
+			"Content-Type: text/html; charset=UTF-8" & @CRLF & _
+			"Transfer-Encoding: chunked" & @CRLF & @CRLF )
+			TCPSend($aSocket[$x],$sPacket) ; Send start of packet
+
+		_WinAPI_CloseHandle($hWritePipe)
+		While 1
+			If Not _WinAPI_ReadFile($hReadPipe, $pBuffer, 4096, $iBytes) Then ExitLoop
+			If $iBytes>0 Then
+				;$bData = Binary(StringRegExpReplace(Hex($iBytes), "^0+", "")&@CRLF& StringLeft(DllStructGetData($tBuffer, "Text"), $iBytes / 2) &@CRLF)
+				$bData = Binary(StringRegExpReplace(Hex($iBytes), "^0+", "")&@CRLF& StringLeft(DllStructGetData($tBuffer, "Text"), $iBytes) &@CRLF)
+				While BinaryLen($bData) ; Send data in chunks (most code by Larry)
+					$a = TCPSend($aSocket[$x], $bData) ; TCPSend returns the number of bytes sent
+					$bData = BinaryMid($bData, $a+1, BinaryLen($bData)-$a)
+				WEnd
+			EndIf
+		WEnd
+		$sPacket = Binary("0"&@CRLF&@CRLF) ; Finish the packet
+		TCPSend($aSocket[$x],$sPacket)
+		TCPCloseSocket($aSocket[$x])
+	_WinAPI_CloseHandle($hProcess)
+	_WinAPI_CloseHandle($hReadPipe)
+EndFunc
+
+Func _HTTP_GCI_AU3()
+	Local $hReadPipe, $hWritePipe
+	Local $STARTF_USESTDHANDLES = 0x100
+	Local $QUERY_STRING = "";FIXME import from request through parameters
+	; Set up security attributes
+	$tSecurity = DllStructCreate($tagSECURITY_ATTRIBUTES)
+	DllStructSetData($tSecurity, "Length", DllStructGetSize($tSecurity))
+	DllStructSetData($tSecurity, "InheritHandle", True)
+	_NamedPipes_CreatePipe($hReadPipe, $hWritePipe, $tSecurity)
+	$tProcess = DllStructCreate($tagPROCESS_INFORMATION)
+	$tStartup = DllStructCreate($tagSTARTUPINFO)
+	DllStructSetData($tStartup, "Size", DllStructGetSize($tStartup))
+	DllStructSetData($tStartup, "Flags", $STARTF_USESTDHANDLES)
+	DllStructSetData($tStartup, "StdOutput", $hWritePipe)
+	DllStructSetData($tStartup, "StdError", $hWritePipe)
+
+	; Local $tSockaddr = DllStructCreate("ushort sa_family;char sa_data[14];")
+	Local $tSockaddr = DllStructCreate("short;ushort;uint;char[8]")
+	Local $aRet = DllCall("Ws2_32.dll", "int", "getpeername", "int", $aSocket[$x], "ptr", DllStructGetPtr($tSockaddr), "int*", DllStructGetSize($tSockaddr))
+	Local $aRet = DllCall("Ws2_32.dll", "str", "inet_ntoa", "int", DllStructGetData($tSockaddr, 3))
+
+	$sEnviroment="SCRIPT_NAME="&StringMid($sLocalPath,StringInStr($sLocalPath, "\", 0, -1)+1)&Chr(0)& _
+	"REMOTE_ADDR="&$aRet[0]&Chr(0)& _
+	"REQUESTED_METHOD=GET"&Chr(0)& _
+	"REQUEST_URI="&StringTrimRight(StringTrimLeft($sFirstLine,4),11)&Chr(0)& _
+	"QUERY_STRING="&$QUERY_STRING&Chr(0)& _
+	Chr(0);missing: USER_AGENT, REFERER, SERVER_PROTOCOL
+	$tEnviroment=DllStructCreate("WCHAR["&StringLen($sEnviroment)&"]")
+	DllStructSetData($tEnviroment, 1, $sEnviroment)
+	_WinAPI_CreateProcess($AU3_Path&"\AutoIt3.exe", "/ErrorStdOut """ & $sLocalPath & """ >", Null, Null, True, $CREATE_NO_WINDOW+$NORMAL_PRIORITY_CLASS+$CREATE_UNICODE_ENVIRONMENT, DllStructGetPtr($tEnviroment), $sRootDir, DllStructGetPtr($tStartup), DllStructGetPtr($tProcess))
 
 	Local $hProcess = DllStructGetData($tProcess, "hProcess")
 	_WinAPI_CloseHandle(DllStructGetData($tProcess, "hThread"))
