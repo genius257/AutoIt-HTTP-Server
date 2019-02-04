@@ -584,6 +584,6 @@ EndFunc
 
 Func Debug($vLog, $nl = True, $ln = @ScriptLineNumber)
 	Local Static $time = TimerInit()
-	If Not @Compiled Then Return
+	If @Compiled Then Return
 	ConsoleWrite(StringFormat("(%04s) %s %+dms%s", $ln, $vLog, TimerDiff($time), $nl ? @CRLF : ""))
 EndFunc
