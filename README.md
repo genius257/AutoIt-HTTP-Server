@@ -1,5 +1,7 @@
 # AutoIt HTTP Server
 
+[![](https://img.shields.io/github/license/genius257/AutoIt-HTTP-Server.svg?style=flat)](LICENSE)
+
 My additions/modifications to [__jvanegmond__](https://www.autoitscript.com/forum/profile/10412-jvanegmond/)'s POST Server
 
 The original source can be found [__here__](https://www.autoitscript.com/forum/topic/68851-powerful-http-server-in-pure-autoit/)
