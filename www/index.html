@@ -5,61 +5,139 @@
 			html{
 				height:100vh;
 			}
+
 			html, body{
 				margin:0;
 				padding:0;
 				width:100%;
 			}
+
 			body{
 				min-height:100vh;
-				background-image:url("./img/logo.png");
-				background-repeat:no-repeat;
-				background-position:center center;
+				overflow-y: scroll;
 			}
-			div{
-				position:absolute;
-				left:50%;
-				top:50%;
-				transform: translate(-50%, -50%);
-				width:700px;
-				min-height:90%;
-				margin:0 auto;
-				background-color:rgba(0,0,0,0.5);
-				padding:20px;
-				box-sizing:border-box;
+
+			body::after {
+				content: "";
+				display: block;
+				margin-top: 60px;
+			}
+
+			header{
+				background-color: #254768;
+				background-image: url('img/logo.svg');
+				background-repeat: no-repeat;
+				background-size: auto 70px;
+				background-position: center center;
+				width: 100%;
+				top: 0;
+				height: 90px;
+				transform: none;
+				left: 0;
+				margin: 0;
+				padding: 0;
+				min-height: auto;
+			}
+
+			label {
+				margin: 10px 10px 0;
+				position: relative;
+				min-height:90px;
+				display:block;
+				background:#333;
+				background: #102f4d;
+				overflow: auto;
+				cursor: pointer;
+			}
+
+			label::before {
+				content:attr(data-title);
+				display:block;
 				color:#FFF;
+				font-size: xx-large;/* font-size: 30px; */
+				padding: 10px 30px 10px 30px;
+				line-height: 70px;
+			}
+
+			label>input[type=radio] {
+				display: none;
+			}
+
+			label>input[type=radio] + div  {
+				display: none;
+				min-height: 0px;
+				min-height: 90px;
+				background:#CCC;
+				overflow: hidden;
+				cursor: initial;
+			}
+
+			label>input[type=radio]:checked + div  {
+				display: block;
+				padding: 10px;
+			}
+
+			footer {
+				position: fixed;
+				bottom: 0;
+				width: 100%;
+				height: 50px;
+				padding: 10px;
+				box-sizing: border-box;
+				padding: 10px;
+				background-color: #D7D7D7;
+				border-top: 1px solid #ECECEC;
+				line-height: 30px;
 			}
 		</style>
 	</head>
 	<body>
-		<div>
-			<h2 style="text-align:center;">AutoIt HTTP Web Server</h2>
-			To add PHP functionality:
-			<ul>
-				<li>
-					Download your desired version from <a href="http://windows.php.net/download" target="blank">here</a>
-				</li>
-				<li>
-					Create a new folder in the same directory as the server script
-				</li>
-				<li>
-					Extract the archive to the newly created folder
-				</li>
-				<li>
-					Open settings.ini and set the <b>PHP_Path</b> value to the folder name
-				</li>
-				<li>
-					<b>Optional:</b> If you want to allow or disallow indexing if a directory is requested and no index file is found:
-					<ul>
-						<li>
-							Open settings.ini and set <b>AllowIndexes</b> to True or False, depending on your need.
-						</li>
-					</ul>
-				</li>
-				<li>
-					(Re-)Start the server
-				</li>
-			</ul>
-		</div>
+		<header></header>
+		<label data-title="Welcome">
+			<input type="radio" name="collapse" checked="checked"/>
+			<div>
+				Thanks for using AutoIt Http Server.
+				<br />
+				<br />
+				This page is used to test the basic operation of the server. If you can read this, it means the basic server functionality is working properly.
+				<br />
+				It also includes various help for configuring the server. Click the section(s) below to read more.
+				<br />
+				<br />
+				This is the default index.html page that is distributed with <b>AutoIt Http Server</b>.
+				<br />
+				<br />
+				You should put your content in the <i>RootDir</i> path of the server config, default <b>/www/</b>.
+			</div>
+		</label>
+
+		<label data-title="Setting up Common Gateway Interface">
+			<input type="radio" name="collapse"/>
+			<div>
+				<h3>AutoIt</h3>
+				Download your desired version from <a href="https://www.autoitscript.com/autoit3/files/archive/autoit/" target="_blank">here</a> as zip
+				<br />
+				Extract the content to a new folder in the same directory as the server script
+				<br />
+				Set the <b>Path</b> key in the <b>AU3</b> section in the <b>settings.ini</b> To the relative path the AutoIt.exe is located at.
+				<br />
+				Example: <i>Path=autoit-v3.3.14.5</i>
+				<br />
+				Restart the server navigate to a <a href="index.au3">AutoIt script</a>
+				<br />
+				If you have AutoIt installed, the path to the AutoIt installation folder can also be used.
+				<h3>PHP</h3>
+				Download your desired version from <a href="https://windows.php.net/download" target="_blank">here</a> as zip
+				<br />
+				Extract the content to a new folder in the same directory as the server script
+				<br />
+				Set the <b>PHP_Path</b> key in the <b>PHP</b> section in the <b>settings.ini</b> To the relative path the php-cgi.exe is located at.
+				<br />
+				Example: <i>PHP_Path=php-7.3.1-Win32-VC15-x64</i>
+				<br />
+				Restart the server navigate to a <a href="index.php">PHP script</a>
+			</div>
+		</label>
+		<footer>Powered by <a href="//github.com/genius257/AutoIt-HTTP-Server">AutoIt HTTP Server</a></footer>
 	</body>
 </html>
