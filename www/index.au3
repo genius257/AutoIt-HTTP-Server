@@ -1,0 +1,15 @@
+;$hSTDOUT = DllCall("Kernel32.dll", "ptr", "GetStdHandle", "DWORD", -11)
+;MsgBox(0, "", $hSTDOUT[0])
+;FileWrite($hSTDOUT[0], "test")
+
+ConsoleWrite("X-Powered-By: AutoIt/"&@AutoItVersion&@LF)
+ConsoleWrite("Content-type: text/html; charset=UTF-8"&@LF)
+ConsoleWrite(@LF)
+
+ConsoleWrite("<html>")
+ConsoleWrite("<head>")
+ConsoleWrite("</head>")
+ConsoleWrite("<body>")
+ConsoleWrite("this is a <b>test</b>")
+ConsoleWrite("</body>")
+ConsoleWrite("</html>")
