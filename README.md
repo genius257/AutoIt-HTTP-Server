@@ -1,5 +1,7 @@
 # AutoIt HTTP Server
 
+This server does not have security as a priority, therefore it is NOT advised to use this for anything but local hosting!
+
 [![](https://img.shields.io/github/license/genius257/AutoIt-HTTP-Server.svg?style=flat-square)](LICENSE)
 
 My additions/modifications to [__jvanegmond__](https://www.autoitscript.com/forum/profile/10412-jvanegmond/)'s POST Server
