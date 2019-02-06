@@ -584,3 +584,37 @@ Func Debug($vLog, $nl = True, $ln = @ScriptLineNumber)
 	If @Compiled Then Return
 	ConsoleWrite(StringFormat("(%04s) %s %+dms%s", $ln, $vLog, TimerDiff($time), $nl ? @CRLF : ""))
 EndFunc
+
+#cs
+# Merge two header strings
+#
+# @param string $headers1
+# @param string $headers2
+#
+# @return string merged headers
+#ce
+Func _HTTP_MergeHttpHeaders($headers1, $headers2)
+    Local $headers = ""
+    $headers1 = _HTTP_ParseHttpHeaders($headers1)
+    $headers2 = _HTTP_ParseHttpHeaders($headers2)
+    For $i=0 To UBound($headers1, 1)-1 Step +2
+        For $j=0 To UBound($headers2, 1)-1 Step +2
+            If StringLower($headers1[$i]) = "set-cookie" Then ContinueLoop 1
+            If StringLower($headers1[$i]) = StringLower($headers2[$j]) Then
+                $headers &= StringFormat("%s: %s%s", $headers2[$j], $headers2[$j+1], @LF)
+                ContinueLoop 2
+            EndIf
+        Next
+        $headers &= StringFormat("%s: %s%s", $headers1[$i], $headers1[$i+1], @LF)
+    Next
+
+    For $i=0 To UBound($headers2, 1)-1 Step +2
+        For $j=0 To UBound($headers1, 1)-1 Step +2
+            If StringLower($headers2[$i]) = "set-cookie" Then ContinueLoop 1
+            If StringLower($headers1[$j]) = StringLower($headers2[$i]) Then ContinueLoop 2
+        Next
+        $headers &= StringFormat("%s: %s%s", $headers2[$i], $headers2[$i+1], @LF)
+    Next
+
+    Return $headers
+EndFunc
