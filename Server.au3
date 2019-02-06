@@ -22,6 +22,9 @@ Global Const $FMFD_SERVERMIME = 0x00000008
 Global Const $FMFD_RESPECTTEXTPLAIN = 0x00000010
 Global Const $FMFD_RETURNUPDATEDIMGMIMES = 0x00000020
 
+Global Const $HTTP_STATUS_200 = "200 OK"
+Global Const $HTTP_STATUS_403 = "403 Forbidden"
+
 #Region // OPTIONS HERE //
 	Local $sRootDir = @ScriptDir & "\www" ; The absolute path to the root directory of the server.
 	;~ Local $sIP = @IPAddress1 ; ip address as defined by AutoIt
@@ -195,7 +198,16 @@ While 1
 	Sleep(10)
 WEnd
 
-Func _HTTP_SendHeaders($hSocket, $headers)
+Func _HTTP_SendHeaders($hSocket, $headers = "", $status = $HTTP_STATUS_200)
+	$headers = _HTTP_MergeHttpHeaders( _
+		"Server: " & $sServerName & @LF & _
+		"Connection: Keep-Alive" & @LF & _
+		"Content-Type: text/html; charset=UTF-8" & @LF, _
+		$headers _
+	)
+
+	$headers = "HTTP/1.1 " & $status & @LF & $headers & @LF
+
 	_HTTP_SendContent($hSocket, $headers)
 EndFunc
 
@@ -237,7 +249,7 @@ Func _HTTP_SendFile($hSocket, $sFileLoc, $sMimeType = Default, $sReply = "200 OK
 	_HTTP_SendData($hSocket, $bFileData, $sMimeType, $sReply, $bLastModified?StringFormat("%s, %s %s %s %s:%s:%s GMT", $wDays[_DateToDayOfWeek($aFileLastModified[0], $aFileLastModified[1], $aFileLastModified[2])-1], $aFileLastModified[2], $months[$aFileLastModified[1]-1], $aFileLastModified[0], $aFileLastModified[3], $aFileLastModified[4], $aFileLastModified[5]):"")
 EndFunc
 
-Func _HTTP_SendData($hSocket, $bData, $sMimeType, $sReply = "200 OK", $sLastModified = ""); FIXME: currently no headers are sent!
+Func _HTTP_SendData($hSocket, $bData, $sMimeType, $sReply = $HTTP_STATUS_200, $sLastModified = ""); FIXME: currently no headers are sent!
 	Local $a
 	Local $sPacket = Binary("HTTP/1.1 " & $sReply & @CRLF & _
 	"Server: " & $sServerName & @CRLF & _
@@ -383,12 +395,7 @@ Func UTF8ToString($utf8)
 EndFunc
 
 Func _HTTP_IndexDir($hSocket, $dir)
-	;TODO: reduce header code redudancy and combine with _HTTP_SendHeaders
-	_HTTP_SendContent($hSocket, "HTTP/1.1 200 OK" & @CRLF & _
-			"Server: " & $sServerName & @CRLF & _
-			"Connection: Keep-Alive" & @CRLF & _
-			"Content-Type: text/html; charset=UTF-8" & @CRLF & _
-			"Transfer-Encoding: chunked" & @CRLF & @CRLF)
+	_HTTP_SendHeaders($hSocket, "Transfer-Encoding: chunked")
 	$title = "Index of "&StringRegExpReplace(StringRegExpReplace(StringTrimLeft($dir, StringLen($sRootDir)), "\\", "/"), "/$", "")
 	_HTTP_SendChunk($hSocket, '<!DOCTYPE html><html><head><title>'&$title&'</title>')
 	_HTTP_SendChunk($hSocket, "<style>th {text-align:left;} .d, .f {background-size:contain;background-repeat:no-repeat;background-position:center;min-width:15px;min-height:15px;} .d{background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MiA1NSI+PHN0eWxlPjwhW0NEQVRBWy5BLC5CLC5De3N0cm9rZTojNDM0MjQyO3N0cm9rZS13aWR0aDoxLjI1O3N0cm9rZS1taXRlcmxpbWl0OjEwfV1dPjwvc3R5bGU+PGxpbmVhckdyYWRpZW50IGlkPSJBIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjM1Ljk0MyIgeTE9Ii43OSIgeDI9IjM1Ljk0MyIgeTI9IjE4LjMzNiI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZmNmY2ZkIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZmZmIi8+PC9saW5lYXJHcmFkaWVudD48cGF0aCBjbGFzcz0iQSIgZD0iTTIuNiAxOC4zVjIuNWMwLS45LjctMS43IDEuNy0xLjdoMjMuM2w2LjcgNWgzMy4zYy45IDAgMS43LjggMS43IDEuN3YxMC45SDIuNnoiIGZpbGw9InVybCgjQSkiLz48bGluZWFyR3JhZGllbnQgaWQ9IkIiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iMzUuOTQzIiB5MT0iNTQuMjYzIiB4Mj0iMzUuOTQzIiB5Mj0iOS45ODEiPjxzdG9wIG9mZnNldD0iLjEwOSIgc3RvcC1jb2xvcj0iI2RlYmUwMCIvPjxzdG9wIG9mZnNldD0iLjUzMiIgc3RvcC1jb2xvcj0iI2NmYWQwNCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2EwNzgwMiIvPjwvbGluZWFyR3JhZGllbnQ+PHBhdGggY2xhc3M9IkIiIGQ9Ik00LjMgNTQuM2g2My4zYy45IDAgMS42LS44IDEuNy0xLjdMNzEgMTEuN2MwLS45LS43LTEuNy0xLjctMS43aC0yNWwtNi43IDVoLTM1Yy0uOSAwLTEuNy44LTEuNyAxLjdsMS43IDM1LjljLjEuOS44IDEuNyAxLjcgMS43eiIgZmlsbD0idXJsKCNCKSIvPjxwYXRoIGNsYXNzPSJDIiBkPSJNNy42IDQuMWgxOC4zYy45IDAgMS43LjggMS43IDEuN3MtLjcgMS43LTEuNyAxLjdINy42Yy0uOSAwLTEuNy0uOC0xLjctMS43cy44LTEuNyAxLjctMS43eiIgZmlsbD0iIzQzNDI0MiIvPjwvc3ZnPg==');} .f{background-image:url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MiAxMDAiPjxsaW5lYXJHcmFkaWVudCBpZD0iQSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiIHgxPSIzNiIgeTE9Ijk5IiB4Mj0iMzYiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNjOGQ0ZGIiLz48c3RvcCBvZmZzZXQ9Ii4xMzkiIHN0b3AtY29sb3I9IiNkOGUxZTYiLz48c3RvcCBvZmZzZXQ9Ii4zNTkiIHN0b3AtY29sb3I9IiNlYmYwZjMiLz48c3RvcCBvZmZzZXQ9Ii42MTciIHN0b3AtY29sb3I9IiNmOWZhZmIiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZmYiLz48L2xpbmVhckdyYWRpZW50PjxwYXRoIGQ9Ik00NSAxbDI3IDI2LjdWOTlIMFYxaDQ1eiIgZmlsbD0idXJsKCNBKSIvPjxwYXRoIGQ9Ik00NSAxbDI3IDI2LjdWOTlIMFYxaDQ1eiIgZmlsbC1vcGFjaXR5PSIwIiBzdHJva2U9IiM3MTkxYTEiIHN0cm9rZS13aWR0aD0iMiIvPjxsaW5lYXJHcmFkaWVudCBpZD0iQiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiIHgxPSI0NS4wNjgiIHkxPSIyNy43OTYiIHgyPSI1OC41NjgiIHkyPSIxNC4yOTUiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmZiIvPjxzdG9wIG9mZnNldD0iLjM1IiBzdG9wLWNvbG9yPSIjZmFmYmZiIi8+PHN0b3Agb2Zmc2V0PSIuNTMyIiBzdG9wLWNvbG9yPSIjZWRmMWY0Ii8+PHN0b3Agb2Zmc2V0PSIuNjc1IiBzdG9wLWNvbG9yPSIjZGRlNWU5Ii8+PHN0b3Agb2Zmc2V0PSIuNzk5IiBzdG9wLWNvbG9yPSIjYzdkM2RhIi8+PHN0b3Agb2Zmc2V0PSIuOTA4IiBzdG9wLWNvbG9yPSIjYWRiZGM3Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjOTJhNWIwIi8+PC9saW5lYXJHcmFkaWVudD48cGF0aCBkPSJNNDUgMWwyNyAyNi43SDQ1VjF6IiBmaWxsPSJ1cmwoI0IpIi8+PHBhdGggZD0iTTQ1IDFsMjcgMjYuN0g0NVYxeiIgZmlsbC1vcGFjaXR5PSIwIiBzdHJva2U9IiM3MTkxYTEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVqb2luPSJiZXZlbCIvPjwvc3ZnPg==');}</style>")
