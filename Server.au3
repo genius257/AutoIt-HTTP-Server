@@ -141,49 +141,50 @@ While 1
 					_HTTP_SendFileNotFoundError($aSocket[$x]) ; sends back an error
 				Else
 					$sLocalPath = _WinAPI_GetFullPathName($sRootDir & "\" & $sRequest);TODO: replace every instance of ($sRootDir & "\" & $sRequest) with $sLocalPath
-					If StringInStr(FileGetAttrib($sLocalPath),"D")>0 Then ; user has requested a directory
-						Local $iStart=1
-						Local $iEnd=StringInStr($DirectoryIndex, ",")-$iStart
-						Local $sIndex
-						If Not (StringRight($sLocalPath, 1)="\") Then $sLocalPath &= "\"
-						While 1
-							$sIndex=StringMid($DirectoryIndex, $iStart, $iEnd)
-							If FileExists($sLocalPath & $sIndex ) Then ExitLoop
-							If $iEnd<1 Then ExitLoop
-							$iStart=$iStart+$iEnd+1
-							$iEnd=StringInStr($DirectoryIndex, ",", 0, 1, $iStart)
-							$iEnd=$iEnd>0?$iEnd-$iStart:$iEnd-1
-						WEnd
+					Select
+						Case StringInStr(FileGetAttrib($sLocalPath),"D")>0 ;user has requested a directory
+							Local $iStart=1
+							Local $iEnd=StringInStr($DirectoryIndex, ",")-$iStart
+							Local $sIndex
+							If Not (StringRight($sLocalPath, 1)="\") Then $sLocalPath &= "\"
+							While 1
+								$sIndex=StringMid($DirectoryIndex, $iStart, $iEnd)
+								If FileExists($sLocalPath & $sIndex ) Then ExitLoop
+								If $iEnd<1 Then ExitLoop
+								$iStart=$iStart+$iEnd+1
+								$iEnd=StringInStr($DirectoryIndex, ",", 0, 1, $iStart)
+								$iEnd=$iEnd>0?$iEnd-$iStart:$iEnd-1
+							WEnd
 
-						;$sLocalPath = $sLocalPath & $sIndex
-						If Not FileExists($sLocalPath&$sIndex) Then
-							If $bAllowIndexes Then;And FileExists(@ScriptDir & "\index.php") Then
-								_HTTP_IndexDir($aSocket[$x], $sLocalPath)
+							If Not FileExists($sLocalPath&$sIndex) Then
+								If $bAllowIndexes Then;And FileExists(@ScriptDir & "\index.php") Then
+									_HTTP_IndexDir($aSocket[$x], $sLocalPath)
+								Else
+									_HTTP_SendHTML($aSocket[$x], "403 Forbidden", "403 Forbidden")
+								EndIf
+								;$sBuffer[$x] = "" ; clears the buffer because we just used to buffer and did some actions based on them
+								;$aSocket[$x] = -1 ; the socket is automatically closed so we reset the socket so that we may accept new clients
+								;ContinueLoop
 							Else
-								_HTTP_SendHTML($aSocket[$x], "403 Forbidden", "403 Forbidden")
+								$sLocalPath = $sLocalPath&$sIndex
+								ContinueCase
 							EndIf
-							;$sBuffer[$x] = "" ; clears the buffer because we just used to buffer and did some actions based on them
-							;$aSocket[$x] = -1 ; the socket is automatically closed so we reset the socket so that we may accept new clients
-							;ContinueLoop
-						EndIf
-
-						$sLocalPath = $sLocalPath&$sIndex
-					ElseIf FileExists($sLocalPath) Then ; makes sure the file that the user wants exists
-						$iFileType = StringInStr($sLocalPath, ".", 0, -1)
-						$sFileType = $iFileType>0 ? StringMid($sLocalPath,$iFileType+1) : ""
-						Switch $sFileType
-							Case "php"
-								If $PHP_Path = "" Then ContinueCase;if php path is not set, it will default to the "Case Else"
-								_HTTP_GCI_PHP()
-							Case "au3"
-								If $AU3_Path = "" Then ContinueCase;if au3 path is not set, it will default to the "Case Else"
-								_HTTP_GCI_AU3()
-							Case Else
-								_HTTP_SendFile($aSocket[$x], $sLocalPath, Default, "200 OK", True)
-						EndSwitch
-					Else
-						_HTTP_SendFileNotFoundError($aSocket[$x]) ; File does not exist, so we'll send back an error..
-					EndIf
+						Case FileExists($sLocalPath) ; makes sure the file that the user wants exists
+							$iFileType = StringInStr($sLocalPath, ".", 0, -1)
+							$sFileType = $iFileType>0 ? StringMid($sLocalPath,$iFileType+1) : ""
+							Switch $sFileType
+								Case "php"
+									If $PHP_Path = "" Then ContinueCase;if php path is not set, it will default to the "Case Else"
+									_HTTP_GCI_PHP()
+								Case "au3"
+									If $AU3_Path = "" Then ContinueCase;if au3 path is not set, it will default to the "Case Else"
+									_HTTP_GCI_AU3()
+								Case Else
+									_HTTP_SendFile($aSocket[$x], $sLocalPath, Default, "200 OK", True)
+							EndSwitch
+						Case Else
+							_HTTP_SendFileNotFoundError($aSocket[$x]) ; File does not exist, so we'll send back an error..
+					EndSelect
 				EndIf
 			Case "POST" ; user has come to us with data, we need to parse that data and based on that do something special
 				_HTTP_SendFile($aSocket[$x], $sRootDir & "\index.html", "text/html") ; Sends back the new file we just created
