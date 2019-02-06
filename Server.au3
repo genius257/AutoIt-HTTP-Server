@@ -494,12 +494,7 @@ Func _HTTP_GCI_PHP()
 		Local $STILL_ACTIVE = 0x103
 
 		;FIXME: move start of packet down and merge headers with php CGI output
-		Local $sPacket = Binary("HTTP/1.1 200 OK" & @CRLF & _
-			"Server: " & $sServerName & @CRLF & _
-			"Connection: Keep-Alive" & @CRLF & _
-			"Content-Type: text/html; charset=UTF-8" & @CRLF & _
-			"Transfer-Encoding: chunked" & @CRLF & @CRLF )
-			TCPSend($aSocket[$x],$sPacket) ; Send start of packet
+		_HTTP_SendHeaders($aSocket[$x], "Transfer-Encoding: chunked")
 
 		_WinAPI_CloseHandle($hWritePipe)
 		While 1
@@ -561,12 +556,7 @@ Func _HTTP_GCI_AU3()
 		Local $STILL_ACTIVE = 0x103
 
 		;FIXME: move start of packet down and merge headers with php CGI output
-		Local $sPacket = Binary("HTTP/1.1 200 OK" & @CRLF & _
-			"Server: " & $sServerName & @CRLF & _
-			"Connection: Keep-Alive" & @CRLF & _
-			"Content-Type: text/html; charset=UTF-8" & @CRLF & _
-			"Transfer-Encoding: chunked" & @CRLF & @CRLF )
-			TCPSend($aSocket[$x],$sPacket) ; Send start of packet
+		_HTTP_SendHeaders($aSocket[$x], "Transfer-Encoding: chunked")
 
 		_WinAPI_CloseHandle($hWritePipe)
 		While 1
