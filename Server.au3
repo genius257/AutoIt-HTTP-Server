@@ -9,6 +9,7 @@
 Opt("WinWaitDelay", 10)
 Opt("TCPTimeout", 10)
 Opt("GUIOnEventMode", 1)
+Opt("TrayAutoPause", 0)
 
 ;# Enums used with the response of _HTTP_ParseHttpRequest method
 Global Enum $HttpRequest_METHOD, $HttpRequest_URI, $HttpRequest_PROTOCOL, $HttpRequest_HEADERS, $HttpRequest_BODY
