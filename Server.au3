@@ -164,10 +164,7 @@ While 1
 						EndIf
 
 						$sLocalPath = $sLocalPath&$sIndex
-						;FIXME: if indexes are not allowed stuck in loop
-					EndIf
-
-					If FileExists($sLocalPath) Then ; makes sure the file that the user wants exists
+					ElseIf FileExists($sLocalPath) Then ; makes sure the file that the user wants exists
 						$iFileType = StringInStr($sLocalPath, ".", 0, -1)
 						$sFileType = $iFileType>0 ? StringMid($sLocalPath,$iFileType+1) : ""
 						Switch $sFileType
