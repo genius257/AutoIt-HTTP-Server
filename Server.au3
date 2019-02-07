@@ -478,7 +478,7 @@ Func _HTTP_GCI_PHP()
 	$sEnviroment="SCRIPT_NAME="&StringMid($sLocalPath,StringInStr($sLocalPath, "\", 0, -1)+1)&Chr(0)& _
 	"REMOTE_ADDR="&$aRet[0]&Chr(0)& _
 	"REQUESTED_METHOD=GET"&Chr(0)& _
-	"REQUEST_URI="&StringTrimRight(StringTrimLeft($sFirstLine,4),11)&Chr(0)& _
+	"REQUEST_URI="&$aUri[$HttpUri_Path]&Chr(0)& _
 	"QUERY_STRING="&$QUERY_STRING&Chr(0)& _
 	Chr(0);missing: USER_AGENT, REFERER, SERVER_PROTOCOL
 	$tEnviroment=DllStructCreate("WCHAR["&StringLen($sEnviroment)&"]")
@@ -540,7 +540,7 @@ Func _HTTP_GCI_AU3()
 	$sEnviroment="SCRIPT_NAME="&StringMid($sLocalPath,StringInStr($sLocalPath, "\", 0, -1)+1)&Chr(0)& _
 	"REMOTE_ADDR="&$aRet[0]&Chr(0)& _
 	"REQUESTED_METHOD=GET"&Chr(0)& _
-	"REQUEST_URI="&StringTrimRight(StringTrimLeft($sFirstLine,4),11)&Chr(0)& _
+	"REQUEST_URI="&$aUri[$HttpUri_Path]&Chr(0)& _
 	"QUERY_STRING="&$QUERY_STRING&Chr(0)& _
 	Chr(0);missing: USER_AGENT, REFERER, SERVER_PROTOCOL
 	$tEnviroment=DllStructCreate("WCHAR["&StringLen($sEnviroment)&"]")
