@@ -27,7 +27,7 @@ Global Const $HTTP_STATUS_200 = "200 OK"
 Global Const $HTTP_STATUS_403 = "403 Forbidden"
 
 #Region // OPTIONS HERE //
-	Local $sRootDir = @ScriptDir & "\www" ; The absolute path to the root directory of the server.
+	Local $sRootDir = _WinAPI_GetFullPathName(IniRead("settings.ini", "core", "RootDir", '.\www\')); The absolute path to the root directory of the server.
 	;~ Local $sIP = @IPAddress1 ; ip address as defined by AutoIt
 	;~ Local $sIP = "127.0.0.1"
 	Local $sIP = IniRead("settings.ini", "core", "IP", "0.0.0.0");	http://localhost/ and more
