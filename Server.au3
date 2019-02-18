@@ -490,27 +490,31 @@ Func _HTTP_GCI_PHP()
 		Local $tBuffer = DllStructCreate("char Text[4096]")
 		Local $pBuffer = DllStructGetPtr($tBuffer)
 		Local $iBytes
-		Local $bData
-		Local $a
-		Local $STILL_ACTIVE = 0x103
-
-		;FIXME: move start of packet down and merge headers with php CGI output
-		_HTTP_SendHeaders($aSocket[$x], "Transfer-Encoding: chunked")
+		Local $sBuffer = ""
+		Local $bHeadersSent = False
+		Local $i, $l
 
 		_WinAPI_CloseHandle($hWritePipe)
 		While 1
 			If Not _WinAPI_ReadFile($hReadPipe, $pBuffer, 4096, $iBytes) Then ExitLoop
 			If $iBytes>0 Then
-				;$bData = Binary(StringRegExpReplace(Hex($iBytes), "^0+", "")&@CRLF& StringLeft(DllStructGetData($tBuffer, "Text"), $iBytes / 2) &@CRLF)
-				$bData = Binary(StringRegExpReplace(Hex($iBytes), "^0+", "")&@CRLF& StringLeft(DllStructGetData($tBuffer, "Text"), $iBytes) &@CRLF)
-				While BinaryLen($bData) ; Send data in chunks (most code by Larry)
-					$a = TCPSend($aSocket[$x], $bData) ; TCPSend returns the number of bytes sent
-					$bData = BinaryMid($bData, $a+1, BinaryLen($bData)-$a)
-				WEnd
+				If $bHeadersSent Then
+					_HTTP_SendChunk($aSocket[$x], StringLeft(DllStructGetData($tBuffer, "Text"), $iBytes))
+				Else
+					$sBuffer &= StringLeft(DllStructGetData($tBuffer, "Text"), $iBytes)
+					If StringInStr(StringStripCR($sBuffer),@LF&@LF) Then ; if the response headers are ready ..
+						$bHeadersSent = True
+						$l = StringRegExp($sBuffer, "\r?\n\r?\n", 1)
+						$i = @extended
+						$l = StringLen($l[0])
+						_HTTP_SendHeaders($aSocket[$x], "Transfer-Encoding: chunked"&@CRLF&StringLeft($sBuffer, $i-3))
+						_HTTP_SendChunk($aSocket[$x], StringMid($sBuffer, $i))
+						$sBuffer = Null; to try and free up some space
+					EndIf
+				EndIf
 			EndIf
 		WEnd
-		$sPacket = Binary("0"&@CRLF&@CRLF) ; Finish the packet
-		TCPSend($aSocket[$x],$sPacket)
+		_HTTP_EndChunk($aSocket[$x])
 		TCPCloseSocket($aSocket[$x])
 	_WinAPI_CloseHandle($hProcess)
 	_WinAPI_CloseHandle($hReadPipe)
@@ -552,27 +556,31 @@ Func _HTTP_GCI_AU3()
 		Local $tBuffer = DllStructCreate("char Text[4096]")
 		Local $pBuffer = DllStructGetPtr($tBuffer)
 		Local $iBytes
-		Local $bData
-		Local $a
-		Local $STILL_ACTIVE = 0x103
-
-		;FIXME: move start of packet down and merge headers with php CGI output
-		_HTTP_SendHeaders($aSocket[$x], "Transfer-Encoding: chunked")
+		Local $sBuffer = ""
+		Local $bHeadersSent = False
+		Local $i, $l
 
 		_WinAPI_CloseHandle($hWritePipe)
 		While 1
 			If Not _WinAPI_ReadFile($hReadPipe, $pBuffer, 4096, $iBytes) Then ExitLoop
 			If $iBytes>0 Then
-				;$bData = Binary(StringRegExpReplace(Hex($iBytes), "^0+", "")&@CRLF& StringLeft(DllStructGetData($tBuffer, "Text"), $iBytes / 2) &@CRLF)
-				$bData = Binary(StringRegExpReplace(Hex($iBytes), "^0+", "")&@CRLF& StringLeft(DllStructGetData($tBuffer, "Text"), $iBytes) &@CRLF)
-				While BinaryLen($bData) ; Send data in chunks (most code by Larry)
-					$a = TCPSend($aSocket[$x], $bData) ; TCPSend returns the number of bytes sent
-					$bData = BinaryMid($bData, $a+1, BinaryLen($bData)-$a)
-				WEnd
+				If $bHeadersSent Then
+					_HTTP_SendChunk($aSocket[$x], StringLeft(DllStructGetData($tBuffer, "Text"), $iBytes))
+				Else
+					$sBuffer &= StringLeft(DllStructGetData($tBuffer, "Text"), $iBytes)
+					If StringInStr(StringStripCR($sBuffer),@LF&@LF) Then ; if the response headers are ready ..
+						$bHeadersSent = True
+						$l = StringRegExp($sBuffer, "\r?\n\r?\n", 1)
+						$i = @extended
+						$l = StringLen($l[0])
+						_HTTP_SendHeaders($aSocket[$x], "Transfer-Encoding: chunked"&@CRLF&StringLeft($sBuffer, $i-3))
+						_HTTP_SendChunk($aSocket[$x], StringMid($sBuffer, $i))
+						$sBuffer = Null; to try and free up some space
+					EndIf
+				EndIf
 			EndIf
 		WEnd
-		$sPacket = Binary("0"&@CRLF&@CRLF) ; Finish the packet
-		TCPSend($aSocket[$x],$sPacket)
+		_HTTP_EndChunk($aSocket[$x])
 		TCPCloseSocket($aSocket[$x])
 	_WinAPI_CloseHandle($hProcess)
 	_WinAPI_CloseHandle($hReadPipe)
