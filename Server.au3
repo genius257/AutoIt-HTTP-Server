@@ -204,7 +204,7 @@ Func _HTTP_SendHeaders($hSocket, $headers = "", $status = $HTTP_STATUS_200)
 	$headers = _HTTP_MergeHttpHeaders( _
 		"Server: " & $sServerName & @LF & _
 		"Connection: Keep-Alive" & @LF & _
-		"Content-Type: text/html; charset=UTF-8" & @LF, _
+		"Content-Type: text/plain; charset=UTF-8" & @LF, _
 		$headers _
 	)
 
