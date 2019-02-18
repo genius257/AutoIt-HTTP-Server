@@ -38,7 +38,7 @@ Global Const $HTTP_STATUS_403 = "403 Forbidden"
 	Local $DirectoryIndex=IniRead("settings.ini", "core", "DirectoryIndex", "index.html")
 	Local $bAllowIndexes=IniRead("settings.ini", "core", "AllowIndexes", False)
 
-	Local $PHP_Path = IniRead("settings.ini", "PHP", "PHP_Path", "")
+	Local $PHP_Path = IniRead("settings.ini", "PHP", "Path", "")
 	Local $AU3_Path = IniRead("settings.ini", "AU3", "Path", "")
 #EndRegion // END OF OPTIONS //
 
