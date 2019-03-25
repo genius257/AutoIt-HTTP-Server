@@ -134,6 +134,8 @@ While 1
 		Switch $aRequest[$HttpRequest_METHOD]
 			;Case "HEAD"
 				;TODO
+			Case "POST"
+				ContinueCase
 			Case "GET"
 				$sRequest = $aUri[$HttpUri_Path]; StringTrimRight(StringTrimLeft($sFirstLine,4),11) ; let's see what file he actually wants
 				;FIXME: if codeblock below: disallows any dot files like .htaccess
