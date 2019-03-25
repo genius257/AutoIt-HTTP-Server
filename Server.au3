@@ -453,37 +453,59 @@ Func FileSizeForHumans($iSize)
 	return StringFormat("%.2f %s", $iSize/1024^$iSizeGroupBase, $suffix)
 EndFunc
 
-;FIXME: add parameters for use with the function
-Func _HTTP_GCI_PHP()
-	Local $hReadPipe, $hWritePipe
+Func _HTTP_CGI($sAppName, $sCommand = Null)
+	local $stdinRd, $stdinWr
+	Local $stdoutRd, $stdoutWr
+	Local $stderrRd, $stderrWr
+
 	Local $STARTF_USESTDHANDLES = 0x100
-	Local $QUERY_STRING = "";FIXME import from request through parameters
+	Local $QUERY_STRING = $aUri[$httpUri_Query]
 	; Set up security attributes
 	$tSecurity = DllStructCreate($tagSECURITY_ATTRIBUTES)
 	DllStructSetData($tSecurity, "Length", DllStructGetSize($tSecurity))
 	DllStructSetData($tSecurity, "InheritHandle", True)
-	_NamedPipes_CreatePipe($hReadPipe, $hWritePipe, $tSecurity)
+	_NamedPipes_CreatePipe($stdinRd, $stdinWr, $tSecurity)
+	_NamedPipes_CreatePipe($stdoutRd, $stdoutWr, $tSecurity)
+	;_NamedPipes_CreatePipe($stderrRd, $stderrWr, $tSecurity)
 	$tProcess = DllStructCreate($tagPROCESS_INFORMATION)
 	$tStartup = DllStructCreate($tagSTARTUPINFO)
 	DllStructSetData($tStartup, "Size", DllStructGetSize($tStartup))
 	DllStructSetData($tStartup, "Flags", $STARTF_USESTDHANDLES)
-	DllStructSetData($tStartup, "StdOutput", $hWritePipe)
-	DllStructSetData($tStartup, "StdError", $hWritePipe)
+	DllStructSetData($tStartup, "StdInput", $stdinRd)
+	DllStructSetData($tStartup, "StdOutput", $stdoutWr)
+	;DllStructSetData($tStartup, "StdError", $stdoutWr)
 
 	; Local $tSockaddr = DllStructCreate("ushort sa_family;char sa_data[14];")
 	Local $tSockaddr = DllStructCreate("short;ushort;uint;char[8]")
 	Local $aRet = DllCall("Ws2_32.dll", "int", "getpeername", "int", $aSocket[$x], "ptr", DllStructGetPtr($tSockaddr), "int*", DllStructGetSize($tSockaddr))
 	Local $aRet = DllCall("Ws2_32.dll", "str", "inet_ntoa", "int", DllStructGetData($tSockaddr, 3))
+	Local $aPort = DllCall("Ws2_32.dll", "ushort", "htons", "ushort", DllStructGetData($tSockaddr, 2))
 
-	$sEnviroment="SCRIPT_NAME="&StringMid($sLocalPath,StringInStr($sLocalPath, "\", 0, -1)+1)&Chr(0)& _
-	"REMOTE_ADDR="&$aRet[0]&Chr(0)& _
-	"REQUESTED_METHOD=GET"&Chr(0)& _
-	"REQUEST_URI="&$aUri[$HttpUri_Path]&Chr(0)& _
+	$sEnviroment = _
+	"CONTENT_LENGTH="&StringLen($aRequest[$HttpRequest_BODY])&Chr(0)& _
+	"CONTENT_TYPE=application/x-www-form-urlencoded"&Chr(0)& _
+	"GATEWAY_INTERFACE=CGI/1.1"&Chr(0)& _
 	"QUERY_STRING="&$QUERY_STRING&Chr(0)& _
-	Chr(0);missing: USER_AGENT, REFERER, SERVER_PROTOCOL
+	"REDIRECT_STATUS=200"&Chr(0)& _
+	"REMOTE_ADDR="&$aRet[0]&Chr(0)& _
+	"REQUEST_METHOD="&$aRequest[$HttpRequest_METHOD]&Chr(0)& _
+	"REQUEST_URI="&$aUri[$HttpUri_Path]&Chr(0)& _
+	"SCRIPT_NAME="&StringMid($sLocalPath,StringInStr($sLocalPath, "\", 0, -1)+1)&Chr(0)& _
+	"SCRIPT_FILENAME="&$sLocalPath&Chr(0)& _
+	"SERVER_ADDR="&$sIP&Chr(0)& _
+	"SERVER_PROTOCOL=HTTP/1.1"&Chr(0)& _
+	"SERVER_NAME=test"&Chr(0)& _
+	"SERVER_SOFTWARE="&$sServerName&Chr(0)& _
+	"DOCUMENT_ROOT="&_WinAPI_GetFullPathName($sRootDir & "\")&Chr(0)& _
+	"HTTP_ACCEPT="&Chr(0)& _
+	"HTTP_HOST="&Chr(0)& _
+	"SERVER_PORT="&$iPort&Chr(0)& _
+	"REMOTE_PORT="&$aPort[0]&Chr(0)& _
+	Chr(0)
 	$tEnviroment=DllStructCreate("WCHAR["&StringLen($sEnviroment)&"]")
 	DllStructSetData($tEnviroment, 1, $sEnviroment)
-	_WinAPI_CreateProcess($PHP_Path&"\php-cgi.exe", "-f """ & $sLocalPath & """ " & $QUERY_STRING, Null, Null, True, $CREATE_NO_WINDOW+$NORMAL_PRIORITY_CLASS+$CREATE_UNICODE_ENVIRONMENT, DllStructGetPtr($tEnviroment), $sRootDir, DllStructGetPtr($tStartup), DllStructGetPtr($tProcess))
+
+	_WinAPI_CreateProcess($sAppName, $sCommand, $tSecurity, Null, True, $CREATE_NO_WINDOW+$NORMAL_PRIORITY_CLASS+$CREATE_UNICODE_ENVIRONMENT, DllStructGetPtr($tEnviroment), $sRootDir, DllStructGetPtr($tStartup), DllStructGetPtr($tProcess))
 
 	Local $hProcess = DllStructGetData($tProcess, "hProcess")
 	_WinAPI_CloseHandle(DllStructGetData($tProcess, "hThread"))
@@ -494,9 +516,26 @@ Func _HTTP_GCI_PHP()
 		Local $bHeadersSent = False
 		Local $i, $l
 
-		_WinAPI_CloseHandle($hWritePipe)
+		local $Request_BODY = $aRequest[$HttpRequest_BODY]
+		Local $Request_BODY_Length = StringLen($Request_BODY)
+		Local $iToWrite = 4096
+		Local $iWritten = 0
+
 		While 1
-			If Not _WinAPI_ReadFile($hReadPipe, $pBuffer, 4096, $iBytes) Then ExitLoop
+			DllStructSetData($tBuffer, "Text", $Request_BODY)
+			$iToWrite = $iToWrite <= $Request_BODY_Length ? $iToWrite : $Request_BODY_Length
+			If Not _WinAPI_WriteFile($stdinWr, $pBuffer, $iToWrite, $iWritten) Then ExitLoop
+			$Request_BODY = StringMid($Request_BODY, 1 + $iWritten)
+			$Request_BODY_Length = StringLen($Request_BODY)
+			if $Request_BODY_Length = 0 Then ExitLoop
+		WEnd
+
+		_WinAPI_CloseHandle($stdinRd)
+		_WinAPI_CloseHandle($stdinWr)
+		_WinAPI_CloseHandle($stdoutWr)
+		_WinAPI_CloseHandle($stderrWr)
+		While 1
+			If Not _WinAPI_ReadFile($stdoutRd, $pBuffer, 4096, $iBytes) Then ExitLoop
 			If $iBytes>0 Then
 				If $bHeadersSent Then
 					_HTTP_SendChunk($aSocket[$x], StringLeft(DllStructGetData($tBuffer, "Text"), $iBytes))
@@ -514,76 +553,20 @@ Func _HTTP_GCI_PHP()
 				EndIf
 			EndIf
 		WEnd
+
 		_HTTP_EndChunk($aSocket[$x])
 		TCPCloseSocket($aSocket[$x])
 	_WinAPI_CloseHandle($hProcess)
-	_WinAPI_CloseHandle($hReadPipe)
+	_WinAPI_CloseHandle($stdoutRd)
+	_WinAPI_CloseHandle($stderrRd)
+EndFunc
+
+Func _HTTP_GCI_PHP()
+	Return _HTTP_CGI($PHP_Path&"\php-cgi.exe")
 EndFunc
 
 Func _HTTP_GCI_AU3()
-	Local $hReadPipe, $hWritePipe
-	Local $STARTF_USESTDHANDLES = 0x100
-	Local $QUERY_STRING = "";FIXME import from request through parameters
-	; Set up security attributes
-	$tSecurity = DllStructCreate($tagSECURITY_ATTRIBUTES)
-	DllStructSetData($tSecurity, "Length", DllStructGetSize($tSecurity))
-	DllStructSetData($tSecurity, "InheritHandle", True)
-	_NamedPipes_CreatePipe($hReadPipe, $hWritePipe, $tSecurity)
-	$tProcess = DllStructCreate($tagPROCESS_INFORMATION)
-	$tStartup = DllStructCreate($tagSTARTUPINFO)
-	DllStructSetData($tStartup, "Size", DllStructGetSize($tStartup))
-	DllStructSetData($tStartup, "Flags", $STARTF_USESTDHANDLES)
-	DllStructSetData($tStartup, "StdOutput", $hWritePipe)
-	DllStructSetData($tStartup, "StdError", $hWritePipe)
-
-	; Local $tSockaddr = DllStructCreate("ushort sa_family;char sa_data[14];")
-	Local $tSockaddr = DllStructCreate("short;ushort;uint;char[8]")
-	Local $aRet = DllCall("Ws2_32.dll", "int", "getpeername", "int", $aSocket[$x], "ptr", DllStructGetPtr($tSockaddr), "int*", DllStructGetSize($tSockaddr))
-	Local $aRet = DllCall("Ws2_32.dll", "str", "inet_ntoa", "int", DllStructGetData($tSockaddr, 3))
-
-	$sEnviroment="SCRIPT_NAME="&StringMid($sLocalPath,StringInStr($sLocalPath, "\", 0, -1)+1)&Chr(0)& _
-	"REMOTE_ADDR="&$aRet[0]&Chr(0)& _
-	"REQUESTED_METHOD=GET"&Chr(0)& _
-	"REQUEST_URI="&$aUri[$HttpUri_Path]&Chr(0)& _
-	"QUERY_STRING="&$QUERY_STRING&Chr(0)& _
-	Chr(0);missing: USER_AGENT, REFERER, SERVER_PROTOCOL
-	$tEnviroment=DllStructCreate("WCHAR["&StringLen($sEnviroment)&"]")
-	DllStructSetData($tEnviroment, 1, $sEnviroment)
-	_WinAPI_CreateProcess($AU3_Path&"\AutoIt3.exe", "/ErrorStdOut """ & $sLocalPath & """ >", Null, Null, True, $CREATE_NO_WINDOW+$NORMAL_PRIORITY_CLASS+$CREATE_UNICODE_ENVIRONMENT, DllStructGetPtr($tEnviroment), $sRootDir, DllStructGetPtr($tStartup), DllStructGetPtr($tProcess))
-
-	Local $hProcess = DllStructGetData($tProcess, "hProcess")
-	_WinAPI_CloseHandle(DllStructGetData($tProcess, "hThread"))
-		Local $tBuffer = DllStructCreate("char Text[4096]")
-		Local $pBuffer = DllStructGetPtr($tBuffer)
-		Local $iBytes
-		Local $sBuffer = ""
-		Local $bHeadersSent = False
-		Local $i, $l
-
-		_WinAPI_CloseHandle($hWritePipe)
-		While 1
-			If Not _WinAPI_ReadFile($hReadPipe, $pBuffer, 4096, $iBytes) Then ExitLoop
-			If $iBytes>0 Then
-				If $bHeadersSent Then
-					_HTTP_SendChunk($aSocket[$x], StringLeft(DllStructGetData($tBuffer, "Text"), $iBytes))
-				Else
-					$sBuffer &= StringLeft(DllStructGetData($tBuffer, "Text"), $iBytes)
-					If StringInStr(StringStripCR($sBuffer),@LF&@LF) Then ; if the response headers are ready ..
-						$bHeadersSent = True
-						$l = StringRegExp($sBuffer, "\r?\n\r?\n", 1)
-						$i = @extended
-						$l = StringLen($l[0])
-						_HTTP_SendHeaders($aSocket[$x], "Transfer-Encoding: chunked"&@CRLF&StringLeft($sBuffer, $i-3))
-						_HTTP_SendChunk($aSocket[$x], StringMid($sBuffer, $i))
-						$sBuffer = Null; to try and free up some space
-					EndIf
-				EndIf
-			EndIf
-		WEnd
-		_HTTP_EndChunk($aSocket[$x])
-		TCPCloseSocket($aSocket[$x])
-	_WinAPI_CloseHandle($hProcess)
-	_WinAPI_CloseHandle($hReadPipe)
+	Return _HTTP_CGI($AU3_Path&"\AutoIt3.exe", "/ErrorStdOut """ & $sLocalPath & """ >")
 EndFunc
 
 Func Debug($vLog, $nl = True, $ln = @ScriptLineNumber)
