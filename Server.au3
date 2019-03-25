@@ -132,7 +132,7 @@ While 1
 		;Debug("LocalPath: " & _WinAPI_GetFullPathName($sRootDir & "\" & $aUri[$HttpUri_Path]))
 
 		Switch $aRequest[$HttpRequest_METHOD]
-			Case "HEAD"
+			;Case "HEAD"
 				;TODO
 			Case "GET"
 				$sRequest = $aUri[$HttpUri_Path]; StringTrimRight(StringTrimLeft($sFirstLine,4),11) ; let's see what file he actually wants
