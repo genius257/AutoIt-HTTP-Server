@@ -57,9 +57,7 @@ If Not ($AU3_Path="") Then
 	If Not FileExists($AU3_Path&"AutoIt3.exe") Then $AU3_Path=""
 EndIf
 
-;TODO: php is no longer associated with doing indexing of folders
 If IsString($bAllowIndexes) Then $bAllowIndexes=((StringLower($bAllowIndexes)=="true")?True : False)
-;If $PHP_Path = "" Then $bAllowIndexes = False
 
 Local $aSocket[$iMaxUsers] ; Creates an array to store all the possible users
 Local $sBuffer[$iMaxUsers] ; All these users have buffers when sending/receiving, so we need a place to store those
