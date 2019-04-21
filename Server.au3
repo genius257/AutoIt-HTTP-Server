@@ -118,8 +118,6 @@ While 1
 		EndIf
 
 		Debug("Starting processing request on position: "&$x)
-
-		$sFirstLine = "";StringLeft($sBuffer[$x],StringInStr($sBuffer[$x],@LF)) ; helps to get the type of the request
 		
 		$aRequest = _HTTP_ParseHttpRequest($sBuffer[$x])
 		$aHeaders = _HTTP_ParseHttpHeaders($aRequest[$HttpRequest_HEADERS])
@@ -135,7 +133,7 @@ While 1
 			Case "POST"
 				ContinueCase
 			Case "GET"
-				$sRequest = $aUri[$HttpUri_Path]; StringTrimRight(StringTrimLeft($sFirstLine,4),11) ; let's see what file he actually wants
+				$sRequest = $aUri[$HttpUri_Path]; let's see what file he actually wants
 				;FIXME: if codeblock below: disallows any dot files like .htaccess
 				If StringInStr(StringReplace($sRequest,"\","/"), "/.") Then ; Disallow any attempts to go back a folder
 					_HTTP_SendFileNotFoundError($aSocket[$x]) ; sends back an error
