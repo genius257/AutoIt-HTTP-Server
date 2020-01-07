@@ -25,7 +25,6 @@ Added:
 Looking into:
 
 - gzip
-- MySQL
 - If-Modified-Since header
 - 401 status code, possibly followed by a 403 status code
 - HEAD Method support
