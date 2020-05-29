@@ -500,8 +500,11 @@ Func _HTTP_CGI($sAppName, $sCommand = Null)
 	"SERVER_PORT="&$iPort&Chr(0)& _
 	"REMOTE_PORT="&$aPort[0]&Chr(0)& _
 	Chr(0)
-	$tEnviroment=DllStructCreate("WCHAR["&StringLen($sEnviroment)&"]")
-	DllStructSetData($tEnviroment, 1, $sEnviroment)
+
+	Local $tEnviroment=DllStructCreate("WCHAR["&((DllStructGetSize($tEnv)/2)+StringLen($sEnviroment))&"]")
+    CopyMemory(DllStructGetPtr($tEnviroment), DllStructGetPtr($tEnv), DllStructGetSize($tEnv))
+    Local $tEnviroment2=DllStructCreate("WCHAR["&StringLen($sEnviroment)&"]", DllStructGetPtr($tEnviroment)+DllStructGetSize($tEnv))
+    DllStructSetData($tEnviroment2, 1, $sEnviroment)
 
 	_WinAPI_CreateProcess($sAppName, $sCommand, $tSecurity, Null, True, $CREATE_NO_WINDOW+$NORMAL_PRIORITY_CLASS+$CREATE_UNICODE_ENVIRONMENT, DllStructGetPtr($tEnviroment), $sRootDir, DllStructGetPtr($tStartup), DllStructGetPtr($tProcess))
 
@@ -605,4 +608,56 @@ Func _HTTP_MergeHttpHeaders($headers1, $headers2)
     Next
 
     Return $headers
+EndFunc
+
+Func GetEnvString()
+    Local $len = 0, $t
+    Local $pEnv = GetEnvironmentStringsW()
+    Local $pItem = $pEnv
+    While 1
+        $len = wcslen($pItem)
+        If $len <= 0 Then ExitLoop
+        $pItem = $pItem + $len * 2 + 2
+    WEnd
+
+    $len = int($pItem, 2)-int($pEnv, 2)
+    local $tEnv = DllStructCreate("WCHAR["&($len/2)&"]")
+
+    CopyMemory(DllStructGetPtr($tEnv, 1), $pEnv, $len)
+
+    FreeEnvironmentStringsW($pEnv)
+
+    Return $tEnv
+EndFunc
+
+Func GetEnvironmentStringsW()
+    Local $aRet = DllCall('Kernel32.dll', 'ptr', 'GetEnvironmentStringsW')
+
+    If @error <> 0 Then Return SetError(@error, @extended, 0)
+    If $aRet[0] = 0 Then Return SetError(1, 0, 0)
+
+    Return $aRet[0]
+EndFunc
+
+Func FreeEnvironmentStringsW($penv)
+    Local $aRet = DllCall('Kernel32.dll', 'BOOLEAN', 'FreeEnvironmentStringsW', 'ptr', $penv)
+
+    If @error <> 0 Then Return SetError(@error, @extended, 0)
+    If $aRet[0] = 0 Then Return SetError(1, 0, 0)
+
+    Return $aRet[0]
+EndFunc
+
+Func wcslen($pWString)
+    Local $aCall = DllCall("ntdll.dll", "dword:cdecl", "wcslen", "ptr", $pWString)
+
+    Return $aCall[0]
+EndFunc
+
+Func CopyMemory($destination, $source, $length)
+    _MemMoveMemory($source, $destination, $length)
+
+    If @error <> 0 Then Return SetError(@error, @extended, 0)
+
+    Return 1
 EndFunc
