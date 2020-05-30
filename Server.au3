@@ -479,6 +479,8 @@ Func _HTTP_CGI($sAppName, $sCommand = Null)
 	Local $aRet = DllCall("Ws2_32.dll", "str", "inet_ntoa", "int", DllStructGetData($tSockaddr, 3))
 	Local $aPort = DllCall("Ws2_32.dll", "ushort", "htons", "ushort", DllStructGetData($tSockaddr, 2))
 
+	Local Static $tEnv = GetEnvString()
+
 	$sEnviroment = _
 	"CONTENT_LENGTH="&StringLen($aRequest[$HttpRequest_BODY])&Chr(0)& _
 	"CONTENT_TYPE=application/x-www-form-urlencoded"&Chr(0)& _
