@@ -170,16 +170,13 @@ While 1
 						Case FileExists($sLocalPath) ; makes sure the file that the user wants exists
 							$iFileType = StringInStr($sLocalPath, ".", 0, -1)
 							$sFileType = $iFileType>0 ? StringMid($sLocalPath,$iFileType+1) : ""
-							Switch $sFileType
-								Case "php"
-									If $PHP_Path = "" Then ContinueCase;if php path is not set, it will default to the "Case Else"
-									_HTTP_GCI_PHP()
-								Case "au3"
-									If $AU3_Path = "" Then ContinueCase;if au3 path is not set, it will default to the "Case Else"
-									_HTTP_GCI_AU3()
-								Case Else
-									_HTTP_SendFile($aSocket[$x], $sLocalPath, Default, "200 OK", True)
-							EndSwitch
+							If $sFileType = "php" And Not $PHP_Path = "" Then
+								_HTTP_GCI_PHP()
+							ElseIf $sFileType = "au3" And Not $AU3_Path = "" Then
+								_HTTP_GCI_AU3()
+							Else
+								_HTTP_SendFile($aSocket[$x], $sLocalPath, Default, "200 OK", True)
+							EndIf
 						Case Else
 							_HTTP_SendFileNotFoundError($aSocket[$x]) ; File does not exist, so we'll send back an error..
 					EndSelect
