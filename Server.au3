@@ -259,6 +259,9 @@ Func _HTTP_SendFile($hSocket, $sFileLoc, $sMimeType = Default, $sReply = "200 OK
 	_HTTP_SendData($hSocket, $bFileData, $sMimeType, $sReply, $bLastModified?StringFormat("%s, %s %s %s %s:%s:%s GMT", $wDays[_DateToDayOfWeek($aFileLastModified[0], $aFileLastModified[1], $aFileLastModified[2])-1], $aFileLastModified[2], $months[$aFileLastModified[1]-1], $aFileLastModified[0], $aFileLastModified[3], $aFileLastModified[4], $aFileLastModified[5]):"")
 EndFunc
 
+#cs
+# @deprecated
+#ce
 Func _HTTP_SendData($hSocket, $bData, $sMimeType, $sReply = $HTTP_STATUS_200, $sLastModified = ""); FIXME: currently no headers are sent!
 	Local $a
 	Local $sPacket = Binary("HTTP/1.1 " & $sReply & @CRLF & _
