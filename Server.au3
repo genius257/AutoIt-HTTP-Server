@@ -10,6 +10,8 @@ Opt("WinWaitDelay", 10)
 Opt("TCPTimeout", 10)
 Opt("GUIOnEventMode", 1)
 Opt("TrayAutoPause", 0)
+Opt("TrayOnEventMode", 1)
+Opt("TrayMenuMode", 2+8)
 
 ;# Enums used with the response of _HTTP_ParseHttpRequest method
 Global Enum $HttpRequest_METHOD, $HttpRequest_URI, $HttpRequest_PROTOCOL, $HttpRequest_HEADERS, $HttpRequest_BODY
@@ -60,6 +62,21 @@ If @error Then ; if you fail creating a socket, exit the application
 	MsgBox(0x20, "AutoIt Webserver", "Unable to create a socket on port " & $iPort & ".") ; notifies the user that the HTTP server will not run
 	Exit ; if your server is part of a GUI that has nothing to do with the server, you'll need to remove the Exit keyword and notify the user that the HTTP server will not work.
 EndIf
+
+;Setup tray menu items
+Global Const $iTrayItemPause = 4
+Global Const $iTrayItemExit = 3
+Global Const $iTrayItemBrowser = TrayCreateItem("Open in browser")
+Global Const $iTrayItemReload = TrayCreateItem("Reload settings")
+TrayItemSetText($iTrayItemPause, "Pause")
+TrayItemSetText($iTrayItemExit, "Exit")
+
+TrayItemSetOnEvent($iTrayItemBrowser, "OpenInBrowser")
+TrayItemSetOnEvent($iTrayItemReload, "LoadSettings")
+
+Func OpenInBrowser()
+	ShellExecute("http://localhost:"&$iPort&"/")
+EndFunc
 
 Func LoadSettings()
 	$sIP = IniRead("settings.ini", "core", "IP", $sIP);	http://localhost/ and more
