@@ -26,38 +26,25 @@ Global Const $FMFD_RETURNUPDATEDIMGMIMES = 0x00000020
 Global Const $HTTP_STATUS_200 = "200 OK"
 Global Const $HTTP_STATUS_403 = "403 Forbidden"
 
-#Region // OPTIONS HERE //
-	Local $sRootDir = _WinAPI_GetFullPathName(IniRead("settings.ini", "core", "RootDir", '.\www\')); The absolute path to the root directory of the server.
-	;~ Local $sIP = @IPAddress1 ; ip address as defined by AutoIt
-	;~ Local $sIP = "127.0.0.1"
-	Local $sIP = IniRead("settings.ini", "core", "IP", "0.0.0.0");	http://localhost/ and more
-	Local $iPort = Int(IniRead("settings.ini", "core", "Port", 80)); the listening port
-	Local $sServerAddress = "http://" & $sIP & ":" & $iPort & "/"
-	Local $iMaxUsers =  Int(IniRead("settings.ini", "core", "MaxUsers", 15)); Maximum number of users who can simultaneously get/post
-	Local $sServerName = "AutoIt HTTP Server/0.1 (" & @OSVersion & ") AutoIt/" & @AutoItVersion
-	Local $DirectoryIndex=IniRead("settings.ini", "core", "DirectoryIndex", "index.html")
-	Local $bAllowIndexes=IniRead("settings.ini", "core", "AllowIndexes", False)
+#Region // DEFAULT OPTIONS HERE //
+	Global $sRootDir = _WinAPI_GetFullPathName(IniRead("settings.ini", "core", "RootDir", '.\www\')); The absolute path to the root directory of the server.
+	;~ Global $sIP = @IPAddress1 ; ip address as defined by AutoIt
+	;~ Global $sIP = "127.0.0.1"
+	Global $sIP = "0.0.0.0";	http://localhost/ and more
+	Global $iPort = 80; the listening port
+	Global $sServerAddress = "http://" & $sIP & ":" & $iPort & "/"
+	Global $iMaxUsers = 15; Maximum number of users who can simultaneously get/post
+	Global $sServerName = "AutoIt HTTP Server/0.1 (" & @OSVersion & ") AutoIt/" & @AutoItVersion
+	Global $DirectoryIndex="index.html"
+	Global $bAllowIndexes=False
 
-	Local $PHP_Path = IniRead("settings.ini", "PHP", "Path", "")
-	Local $AU3_Path = IniRead("settings.ini", "AU3", "Path", "")
-#EndRegion // END OF OPTIONS //
+	Global $PHP_Path = ""
+	Global $AU3_Path = ""
+#EndRegion // END OF DEFAULT OPTIONS //
 
 ;TODO: add server gui
 
-If $iMaxUsers<1 Then Exit MsgBox(0x10, "AutoIt HTTP Sever", "MaxUsers is less than one."&@CRLF&"The server will now close")
-If $DirectoryIndex = "" Then $DirectoryIndex = "index.html"
-
-If Not ($PHP_Path="") Then
-	$PHP_Path=_WinAPI_GetFullPathName($PHP_Path&"\")
-	If Not FileExists($PHP_Path&"php-cgi.exe") Then $PHP_Path=""
-EndIf
-
-If Not ($AU3_Path="") Then
-	$AU3_Path=_WinAPI_GetFullPathName($AU3_Path&"\")
-	If Not FileExists($AU3_Path&"AutoIt3.exe") Then $AU3_Path=""
-EndIf
-
-If IsString($bAllowIndexes) Then $bAllowIndexes=((StringLower($bAllowIndexes)=="true")?True : False)
+LoadSettings()
 
 Local $aSocket[$iMaxUsers] ; Creates an array to store all the possible users
 Local $sBuffer[$iMaxUsers] ; All these users have buffers when sending/receiving, so we need a place to store those
@@ -73,6 +60,32 @@ If @error Then ; if you fail creating a socket, exit the application
 	MsgBox(0x20, "AutoIt Webserver", "Unable to create a socket on port " & $iPort & ".") ; notifies the user that the HTTP server will not run
 	Exit ; if your server is part of a GUI that has nothing to do with the server, you'll need to remove the Exit keyword and notify the user that the HTTP server will not work.
 EndIf
+
+Func LoadSettings()
+	$sIP = IniRead("settings.ini", "core", "IP", $sIP);	http://localhost/ and more
+	$iPort = Int(IniRead("settings.ini", "core", "Port", $iPort)); the listening port
+	$iMaxUsers =  Int(IniRead("settings.ini", "core", "MaxUsers", $iMaxUsers)); Maximum number of users who can simultaneously get/post
+	$DirectoryIndex=IniRead("settings.ini", "core", "DirectoryIndex", $DirectoryIndex)
+	$bAllowIndexes=IniRead("settings.ini", "core", "AllowIndexes", $bAllowIndexes)
+
+	$PHP_Path = IniRead("settings.ini", "PHP", "Path", $PHP_Path)
+	$AU3_Path = IniRead("settings.ini", "AU3", "Path", $AU3_Path)
+
+	If $iMaxUsers<1 Then Exit MsgBox(0x10, "AutoIt HTTP Sever", "MaxUsers is less than one."&@CRLF&"The server will now close")
+	If $DirectoryIndex = "" Then $DirectoryIndex = "index.html"
+
+	If Not ($PHP_Path="") Then
+		$PHP_Path=_WinAPI_GetFullPathName($PHP_Path&"\")
+		If Not FileExists($PHP_Path&"php-cgi.exe") Then $PHP_Path=""
+	EndIf
+
+	If Not ($AU3_Path="") Then
+		$AU3_Path=_WinAPI_GetFullPathName($AU3_Path&"\")
+		If Not FileExists($AU3_Path&"AutoIt3.exe") Then $AU3_Path=""
+	EndIf
+
+	If IsString($bAllowIndexes) Then $bAllowIndexes=((StringLower($bAllowIndexes)=="true")?True : False)
+EndFunc
 
 Debug("Server created on " & $sServerAddress)
 
