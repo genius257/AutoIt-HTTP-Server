@@ -190,9 +190,6 @@ While 1
                                 Else
                                     _HTTP_SendHTML($aSocket[$x], "403 Forbidden", "403 Forbidden")
                                 EndIf
-                                ;$sBuffer[$x] = "" ; clears the buffer because we just used to buffer and did some actions based on them
-                                ;$aSocket[$x] = -1 ; the socket is automatically closed so we reset the socket so that we may accept new clients
-                                ;ContinueLoop
                             Else
                                 $sLocalPath = $sLocalPath&$sIndex
                                 ContinueCase
