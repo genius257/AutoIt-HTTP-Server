@@ -3,6 +3,7 @@
 #include <WinAPI.au3>
 #include <WinAPIProc.au3>
 #include <WinAPIFiles.au3>
+#include <WinAPIHObj.au3>
 #include <Date.au3>
 #include <String.au3>
 
@@ -481,7 +482,7 @@ EndFunc
 Func _HTTP_CGI($sAppName, $sCommand = Null)
     local $stdinRd, $stdinWr
     Local $stdoutRd, $stdoutWr
-    Local $stderrRd, $stderrWr
+    Local Static $stderr = _WinAPI_GetStdHandle(2)
 
     Local $STARTF_USESTDHANDLES = 0x100
     Local $QUERY_STRING = $aUri[$httpUri_Query]
@@ -491,14 +492,13 @@ Func _HTTP_CGI($sAppName, $sCommand = Null)
     DllStructSetData($tSecurity, "InheritHandle", True)
     _NamedPipes_CreatePipe($stdinRd, $stdinWr, $tSecurity)
     _NamedPipes_CreatePipe($stdoutRd, $stdoutWr, $tSecurity)
-    ;_NamedPipes_CreatePipe($stderrRd, $stderrWr, $tSecurity)
     $tProcess = DllStructCreate($tagPROCESS_INFORMATION)
     $tStartup = DllStructCreate($tagSTARTUPINFO)
     DllStructSetData($tStartup, "Size", DllStructGetSize($tStartup))
     DllStructSetData($tStartup, "Flags", $STARTF_USESTDHANDLES)
     DllStructSetData($tStartup, "StdInput", $stdinRd)
     DllStructSetData($tStartup, "StdOutput", $stdoutWr)
-    ;DllStructSetData($tStartup, "StdError", $stdoutWr)
+    DllStructSetData($tStartup, "StdError", $stderr)
 
     ; Local $tSockaddr = DllStructCreate("ushort sa_family;char sa_data[14];")
     Local $tSockaddr = DllStructCreate("short;ushort;uint;char[8]")
@@ -563,7 +563,6 @@ Func _HTTP_CGI($sAppName, $sCommand = Null)
         _WinAPI_CloseHandle($stdinRd)
         _WinAPI_CloseHandle($stdinWr)
         _WinAPI_CloseHandle($stdoutWr)
-        _WinAPI_CloseHandle($stderrWr)
         While 1
             If Not _WinAPI_ReadFile($stdoutRd, $pBuffer, 4096, $iBytes) Then ExitLoop
             If $iBytes>0 Then
@@ -588,7 +587,6 @@ Func _HTTP_CGI($sAppName, $sCommand = Null)
         TCPCloseSocket($aSocket[$x])
     _WinAPI_CloseHandle($hProcess)
     _WinAPI_CloseHandle($stdoutRd)
-    _WinAPI_CloseHandle($stderrRd)
 EndFunc
 
 Func _HTTP_GCI_PHP()
