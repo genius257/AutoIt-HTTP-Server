@@ -46,6 +46,8 @@ Global $sLocalPath
 
     Global $PHP_Path = ""
     Global $AU3_Path = ""
+
+    Global $_HTTP_Server_Request_Handler = _HTTP_Server_Request_Handle
 #EndRegion // END OF DEFAULT OPTIONS //
 
 Func _HTTP_Server_Start()
@@ -101,7 +103,7 @@ Func _HTTP_Server_Start()
             $sBuffer[$x] &= $sNewData ;store it in the buffer
 
             If StringInStr(StringStripCR($sBuffer[$x]),@LF&@LF) Then ; if the request headers are ready ..
-                $aRequest = _HTTP_ParseHttpRequest($sBuffer[$x])
+                Local $aRequest = _HTTP_ParseHttpRequest($sBuffer[$x])
                 $aContentLength = StringRegExp($sBuffer[$x], "(?m)^Content-Length: ([0-9]+)$", 1)
                 If @error = 0 And Not ($aContentLength[0] >= BinaryLen(StringToBinary($aRequest[$HttpRequest_BODY]))) Then ContinueLoop ; If we havent gotten the complete request body yet, we process other requests and try again later.
             Else
@@ -109,71 +111,8 @@ Func _HTTP_Server_Start()
             EndIf
 
             Debug("Starting processing request on position: "&$x)
-            
-            $aRequest = _HTTP_ParseHttpRequest($sBuffer[$x])
-            $aHeaders = _HTTP_ParseHttpHeaders($aRequest[$HttpRequest_HEADERS])
-            $aUri = _HTTP_ParseURI($aRequest[$HttpRequest_URI])
 
-            Debug("aUri[Path]: "&$aUri[$HttpUri_Path])
-            ;Debug("aUri[Query]: "&$aUri[$httpUri_Query])
-            ;Debug("LocalPath: " & _WinAPI_GetFullPathName($sRootDir & "\" & $aUri[$HttpUri_Path]))
-
-            Switch $aRequest[$HttpRequest_METHOD]
-                ;Case "HEAD"
-                    ;TODO
-                Case "POST"
-                    ContinueCase
-                Case "GET"
-                    $sRequest = $aUri[$HttpUri_Path]; let's see what file he actually wants
-                    ;FIXME: if codeblock below: disallows any dot files like .htaccess
-                    If StringInStr(StringReplace($sRequest,"\","/"), "/.") Then ; Disallow any attempts to go back a folder
-                        _HTTP_SendFileNotFoundError($aSocket[$x]) ; sends back an error
-                    Else
-                        $sLocalPath = _WinAPI_GetFullPathName($sRootDir & "\" & $sRequest);TODO: replace every instance of ($sRootDir & "\" & $sRequest) with $sLocalPath
-                        Select
-                            Case StringInStr(FileGetAttrib($sLocalPath),"D")>0 ;user has requested a directory
-                                Local $iStart=1
-                                Local $iEnd=StringInStr($DirectoryIndex, ",")-$iStart
-                                Local $sIndex
-                                If Not (StringRight($sLocalPath, 1)="\") Then $sLocalPath &= "\"
-                                While 1
-                                    $sIndex=StringMid($DirectoryIndex, $iStart, $iEnd)
-                                    If FileExists($sLocalPath & $sIndex ) Then ExitLoop
-                                    If $iEnd<1 Then ExitLoop
-                                    $iStart=$iStart+$iEnd+1
-                                    $iEnd=StringInStr($DirectoryIndex, ",", 0, 1, $iStart)
-                                    $iEnd=$iEnd>0?$iEnd-$iStart:$iEnd-1
-                                WEnd
-
-                                If Not FileExists($sLocalPath&$sIndex) Then
-                                    If $bAllowIndexes Then;And FileExists(@ScriptDir & "\index.php") Then
-                                        _HTTP_IndexDir($aSocket[$x], $sLocalPath)
-                                    Else
-                                        _HTTP_SendHTML($aSocket[$x], "403 Forbidden", "403 Forbidden")
-                                    EndIf
-                                Else
-                                    $sLocalPath = $sLocalPath&$sIndex
-                                    ContinueCase
-                                EndIf
-                            Case FileExists($sLocalPath) ; makes sure the file that the user wants exists
-                                $iFileType = StringInStr($sLocalPath, ".", 0, -1)
-                                $sFileType = $iFileType>0 ? StringMid($sLocalPath,$iFileType+1) : ""
-                                If $sFileType = "php" And Not $PHP_Path = "" Then
-                                    _HTTP_GCI_PHP()
-                                ElseIf $sFileType = "au3" And Not $AU3_Path = "" Then
-                                    _HTTP_GCI_AU3()
-                                Else
-                                    _HTTP_SendFile($aSocket[$x], $sLocalPath, Default, "200 OK", True)
-                                EndIf
-                            Case Else
-                                _HTTP_SendFileNotFoundError($aSocket[$x]) ; File does not exist, so we'll send back an error..
-                        EndSelect
-                    EndIf
-                Case "POST" ; user has come to us with data, we need to parse that data and based on that do something special
-                    _HTTP_SendFile($aSocket[$x], $sRootDir & "\index.html", "text/html") ; Sends back the new file we just created
-                Case Else
-                    _HTTP_SendHTML($aSocket[$x], "", "501 Not Implemented")
-            EndSwitch
+            $_HTTP_Server_Request_Handler($aSocket[$x], $sBuffer[$x])
 
             TCPCloseSocket($aSocket[$x])
             $aSocket[$x] = -1 ; the socket is closed so we reset the socket so that we may accept new clients
@@ -678,4 +617,71 @@ Func CopyMemory($destination, $source, $length)
     If @error <> 0 Then Return SetError(@error, @extended, 0)
 
     Return 1
+EndFunc
+
+Func _HTTP_Server_Request_Handle($hSocket, $sRequest)
+    $aRequest = _HTTP_ParseHttpRequest($sRequest)
+    $aHeaders = _HTTP_ParseHttpHeaders($aRequest[$HttpRequest_HEADERS])
+    $aUri = _HTTP_ParseURI($aRequest[$HttpRequest_URI])
+
+    Debug("aUri[Path]: "&$aUri[$HttpUri_Path])
+    ;Debug("aUri[Query]: "&$aUri[$httpUri_Query])
+    ;Debug("LocalPath: " & _WinAPI_GetFullPathName($sRootDir & "\" & $aUri[$HttpUri_Path]))
+
+    Switch $aRequest[$HttpRequest_METHOD]
+        ;Case "HEAD"
+            ;TODO
+        Case "POST"
+            ContinueCase
+        Case "GET"
+            $sRequest = $aUri[$HttpUri_Path]; let's see what file he actually wants
+            ;FIXME: if codeblock below: disallows any dot files like .htaccess
+            If StringInStr(StringReplace($sRequest,"\","/"), "/.") Then ; Disallow any attempts to go back a folder
+                _HTTP_SendFileNotFoundError($aSocket[$x]) ; sends back an error
+            Else
+                $sLocalPath = _WinAPI_GetFullPathName($sRootDir & "\" & $sRequest);TODO: replace every instance of ($sRootDir & "\" & $sRequest) with $sLocalPath
+                Select
+                    Case StringInStr(FileGetAttrib($sLocalPath),"D")>0 ;user has requested a directory
+                        Local $iStart=1
+                        Local $iEnd=StringInStr($DirectoryIndex, ",")-$iStart
+                        Local $sIndex
+                        If Not (StringRight($sLocalPath, 1)="\") Then $sLocalPath &= "\"
+                        While 1
+                            $sIndex=StringMid($DirectoryIndex, $iStart, $iEnd)
+                            If FileExists($sLocalPath & $sIndex ) Then ExitLoop
+                            If $iEnd<1 Then ExitLoop
+                            $iStart=$iStart+$iEnd+1
+                            $iEnd=StringInStr($DirectoryIndex, ",", 0, 1, $iStart)
+                            $iEnd=$iEnd>0?$iEnd-$iStart:$iEnd-1
+                        WEnd
+
+                        If Not FileExists($sLocalPath&$sIndex) Then
+                            If $bAllowIndexes Then;And FileExists(@ScriptDir & "\index.php") Then
+                                _HTTP_IndexDir($aSocket[$x], $sLocalPath)
+                            Else
+                                _HTTP_SendHTML($aSocket[$x], "403 Forbidden", "403 Forbidden")
+                            EndIf
+                        Else
+                            $sLocalPath = $sLocalPath&$sIndex
+                            ContinueCase
+                        EndIf
+                    Case FileExists($sLocalPath) ; makes sure the file that the user wants exists
+                        $iFileType = StringInStr($sLocalPath, ".", 0, -1)
+                        $sFileType = $iFileType>0 ? StringMid($sLocalPath,$iFileType+1) : ""
+                        If $sFileType = "php" And Not $PHP_Path = "" Then
+                            _HTTP_GCI_PHP()
+                        ElseIf $sFileType = "au3" And Not $AU3_Path = "" Then
+                            _HTTP_GCI_AU3()
+                        Else
+                            _HTTP_SendFile($aSocket[$x], $sLocalPath, Default, "200 OK", True)
+                        EndIf
+                    Case Else
+                        _HTTP_SendFileNotFoundError($aSocket[$x]) ; File does not exist, so we'll send back an error..
+                EndSelect
+            EndIf
+        Case "POST" ; user has come to us with data, we need to parse that data and based on that do something special
+            _HTTP_SendFile($aSocket[$x], $sRootDir & "\index.html", "text/html") ; Sends back the new file we just created
+        Case Else
+            _HTTP_SendHTML($aSocket[$x], "", "501 Not Implemented")
+    EndSwitch
 EndFunc
