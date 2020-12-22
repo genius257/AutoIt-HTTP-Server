@@ -26,6 +26,5 @@ Looking into:
 
 - gzip
 - If-Modified-Since header
-- 401 status code, possibly followed by a 403 status code
 - HEAD Method support
 - Maybe adding [FindFirstChangeNotification](https://www.autoitscript.com/autoit3/docs/libfunctions/_WinAPI_FindFirstChangeNotification.htm) with server to watch __settings.ini__ file for changes, to avoid restarting to apply the changes.
