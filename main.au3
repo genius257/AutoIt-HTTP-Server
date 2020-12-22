@@ -51,4 +51,41 @@ Func LoadSettings()
     If IsString($bAllowIndexes) Then $bAllowIndexes=((StringLower($bAllowIndexes)=="true")?True : False)
 EndFunc
 
+; Here we can override the default request handler
+;$_HTTP_Server_Request_Handler = MyHandler
+
 _HTTP_Server_Start()
+
+Func MyHandler($hSocket, $sRequest)
+    If Not StringRegExp($sRequest, "(?i)^GET /auth/? ") Then Return _HTTP_Server_Request_Handle($hSocket, $sRequest)
+
+    ; We reach this part if the uri equals /auth/
+
+    $aRequest = _HTTP_ParseHttpRequest($sRequest)
+    $aHeaders = _HTTP_ParseHttpHeaders($aRequest[$HttpRequest_HEADERS])
+    ;$aUri = _HTTP_ParseURI($aRequest[$HttpRequest_URI])
+
+    Local $bAuthenticated = False
+    Local $bTried = False
+    Local $i
+    For $i = 0 To UBound($aHeaders, 1) - 1 Step +2
+        ConsoleWrite($aHeaders[$i]&@CRLF)
+        If Not (StringLower($aHeaders[$i]) == "authorization") Then ContinueLoop
+        $bTried = True
+        Local $aAuth = StringSplit($aHeaders[$i + 1], " ", 2)
+        If Not (StringLower($aAuth[0]) == "basic") Then ContinueLoop
+        If Not ($aAuth[1] == "Z3Vlc3Q6Z3Vlc3Q=") Then ContinueLoop
+        $bAuthenticated = True
+    Next
+
+    If $bAuthenticated Then
+        _HTTP_SendHeaders($hSocket)
+        _HTTP_SendContent($hSocket, "Valid credentials")
+    ;ElseIf $bTried Then
+    ;    _HTTP_SendHeaders($hSocket, "", "403 Forbidden")
+    ;    _HTTP_SendContent($hSocket, "Invalid credentials")
+    Else
+        _HTTP_SendHeaders($hSocket, 'WWW-Authenticate: Basic realm="user: guest pass: guest", charset="UTF-8"'&@LF, "401 Unauthorized")
+        _HTTP_SendContent($hSocket, "validation required")
+    EndIf
+EndFunc
