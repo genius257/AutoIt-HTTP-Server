@@ -104,7 +104,7 @@ Func _HTTP_Server_Start()
             If StringInStr(StringStripCR($sBuffer[$x]),@LF&@LF) Then ; if the request headers are ready ..
                 $aRequest = _HTTP_ParseHttpRequest($sBuffer[$x])
                 $aContentLength = StringRegExp($sBuffer[$x], "(?m)^Content-Length: ([0-9]+)$", 1)
-                If @error = 0 And Not ($aContentLength[0] = BinaryLen(StringToBinary($aRequest[$HttpRequest_BODY]))) Then ContinueLoop
+                If @error = 0 And Not ($aContentLength[0] >= BinaryLen(StringToBinary($aRequest[$HttpRequest_BODY]))) Then ContinueLoop ; If we havent gotten the complete request body yet, we process other requests and try again later.
             Else
                 ContinueLoop
             EndIf
