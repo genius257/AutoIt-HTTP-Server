@@ -7,12 +7,8 @@
 #include <Date.au3>
 #include <String.au3>
 
-Opt("WinWaitDelay", 10)
 Opt("TCPTimeout", 10)
 Opt("GUIOnEventMode", 1)
-Opt("TrayAutoPause", 0)
-Opt("TrayOnEventMode", 1)
-Opt("TrayMenuMode", 2+8)
 
 ;# Enums used with the response of _HTTP_ParseHttpRequest method
 Global Enum $HttpRequest_METHOD, $HttpRequest_URI, $HttpRequest_PROTOCOL, $HttpRequest_HEADERS, $HttpRequest_BODY
@@ -28,6 +24,14 @@ Global Const $FMFD_RETURNUPDATEDIMGMIMES = 0x00000020
 
 Global Const $HTTP_STATUS_200 = "200 OK"
 Global Const $HTTP_STATUS_403 = "403 Forbidden"
+
+;Global server variables
+Global $aRequest
+Global $aHeaders
+Global $aUri
+Global $x ;FIXME: change to more unique variable name
+Global $aSocket
+Global $sLocalPath
 
 #Region // DEFAULT OPTIONS HERE //
     Global $sRootDir = _WinAPI_GetFullPathName(IniRead("settings.ini", "core", "RootDir", '.\www\')); The absolute path to the root directory of the server.
@@ -45,183 +49,141 @@ Global Const $HTTP_STATUS_403 = "403 Forbidden"
     Global $AU3_Path = ""
 #EndRegion // END OF DEFAULT OPTIONS //
 
-;TODO: add server gui
+Func _HTTP_Server_Start()
+    ;Local $aSocket[$iMaxUsers] ; Creates an array to store all the possible users
+    Global $aSocket[$iMaxUsers] ; Creates an array to store all the possible users
+    Local $sBuffer[$iMaxUsers] ; All these users have buffers when sending/receiving, so we need a place to store those
 
-LoadSettings()
-
-Local $aSocket[$iMaxUsers] ; Creates an array to store all the possible users
-Local $sBuffer[$iMaxUsers] ; All these users have buffers when sending/receiving, so we need a place to store those
-
-For $x = 0 to UBound($aSocket)-1 ; Fills the entire socket array with -1 integers, so that the server knows they are empty.
-    $aSocket[$x] = -1
-Next
-
-TCPStartup() ; AutoIt needs to initialize the TCP functions
-
-$iMainSocket = TCPListen($sIP,$iPort, $iMaxUsers) ;create main listening socket
-If @error Then ; if you fail creating a socket, exit the application
-    MsgBox(0x20, "AutoIt Webserver", "Unable to create a socket on port " & $iPort & ".") ; notifies the user that the HTTP server will not run
-    Exit ; if your server is part of a GUI that has nothing to do with the server, you'll need to remove the Exit keyword and notify the user that the HTTP server will not work.
-EndIf
-
-;Setup tray menu items
-Global Const $iTrayItemPause = 4
-Global Const $iTrayItemExit = 3
-Global Const $iTrayItemBrowser = TrayCreateItem("Open in browser")
-Global Const $iTrayItemReload = TrayCreateItem("Reload settings")
-TrayItemSetText($iTrayItemPause, "Pause")
-TrayItemSetText($iTrayItemExit, "Exit")
-
-TrayItemSetOnEvent($iTrayItemBrowser, "OpenInBrowser")
-TrayItemSetOnEvent($iTrayItemReload, "LoadSettings")
-
-Func OpenInBrowser()
-    ShellExecute("http://localhost:"&$iPort&"/")
-EndFunc
-
-Func LoadSettings()
-    $sIP = IniRead("settings.ini", "core", "IP", $sIP);	http://localhost/ and more
-    $iPort = Int(IniRead("settings.ini", "core", "Port", $iPort)); the listening port
-    $iMaxUsers =  Int(IniRead("settings.ini", "core", "MaxUsers", $iMaxUsers)); Maximum number of users who can simultaneously get/post
-    $DirectoryIndex=IniRead("settings.ini", "core", "DirectoryIndex", $DirectoryIndex)
-    $bAllowIndexes=IniRead("settings.ini", "core", "AllowIndexes", $bAllowIndexes)
-
-    $PHP_Path = IniRead("settings.ini", "PHP", "Path", $PHP_Path)
-    $AU3_Path = IniRead("settings.ini", "AU3", "Path", $AU3_Path)
-
-    If $iMaxUsers<1 Then Exit MsgBox(0x10, "AutoIt HTTP Sever", "MaxUsers is less than one."&@CRLF&"The server will now close")
-    If $DirectoryIndex = "" Then $DirectoryIndex = "index.html"
-
-    If Not ($PHP_Path="") Then
-        $PHP_Path=_WinAPI_GetFullPathName($PHP_Path&"\")
-        If Not FileExists($PHP_Path&"php-cgi.exe") Then $PHP_Path=""
-    EndIf
-
-    If Not ($AU3_Path="") Then
-        $AU3_Path=_WinAPI_GetFullPathName($AU3_Path&"\")
-        If Not FileExists($AU3_Path&"AutoIt3.exe") Then $AU3_Path=""
-    EndIf
-
-    If IsString($bAllowIndexes) Then $bAllowIndexes=((StringLower($bAllowIndexes)=="true")?True : False)
-EndFunc
-
-Debug("Server created on " & $sServerAddress)
-
-While 1
-    $iNewSocket = TCPAccept($iMainSocket) ; Tries to accept incoming connections
-
-    If $iNewSocket <> -1 Then ; Verifies that there actually is an incoming connection
-        For $x = 0 to UBound($aSocket)-1 ; Attempts to store the incoming connection
-            If $aSocket[$x] = -1 Then
-                $aSocket[$x] = $iNewSocket ;store the new socket
-                Debug("Accepted new request on position: "&$x)
-                ExitLoop
-            EndIf
-        Next
-        If $aSocket[$x] = -1 Then TCPCloseSocket($iNewSocket); No room for socket
-    EndIf
-
-    For $x = 0 to UBound($aSocket)-1 ; A big loop to receive data from everyone connected
-        If $aSocket[$x] = -1 Then ContinueLoop ; if the socket is empty, it will continue to the next iteration, doing nothing
-
-        Debug("("&$aSocket[$x]&")Getting request information on position: "&$x)
-
-        $sNewData = TCPRecv($aSocket[$x], 1024, 1) ; Receives a whole lot of data if possible
-        If @error <> 0 Or @extended<>0 Then ; Client has disconnected
-            TCPCloseSocket($aSocket[$x])
-            Debug("Client has disconnected on position: "&$x)
-            $aSocket[$x] = -1 ; Socket is freed so that a new user may join
-            $sBuffer[$x] = ""
-            ContinueLoop ; Go to the next iteration of the loop, not really needed but looks oh so good
-        EndIf
-
-        $sNewData = BinaryToString($sNewData) ; Receives a whole lot of data if possible
-
-        Debug(VarGetType($sNewData)&"("&StringLen($sNewData)&"): "&$sNewData)
-        $sBuffer[$x] &= $sNewData ;store it in the buffer
-
-        If StringInStr(StringStripCR($sBuffer[$x]),@LF&@LF) Then ; if the request headers are ready ..
-            $aRequest = _HTTP_ParseHttpRequest($sBuffer[$x])
-            $aContentLength = StringRegExp($sBuffer[$x], "(?m)^Content-Length: ([0-9]+)$", 1)
-            If @error = 0 And Not ($aContentLength[0] = BinaryLen(StringToBinary($aRequest[$HttpRequest_BODY]))) Then ContinueLoop
-        Else
-            ContinueLoop
-        EndIf
-
-        Debug("Starting processing request on position: "&$x)
-        
-        $aRequest = _HTTP_ParseHttpRequest($sBuffer[$x])
-        $aHeaders = _HTTP_ParseHttpHeaders($aRequest[$HttpRequest_HEADERS])
-        $aUri = _HTTP_ParseURI($aRequest[$HttpRequest_URI])
-
-        Debug("aUri[Path]: "&$aUri[$HttpUri_Path])
-        ;Debug("aUri[Query]: "&$aUri[$httpUri_Query])
-        ;Debug("LocalPath: " & _WinAPI_GetFullPathName($sRootDir & "\" & $aUri[$HttpUri_Path]))
-
-        Switch $aRequest[$HttpRequest_METHOD]
-            ;Case "HEAD"
-                ;TODO
-            Case "POST"
-                ContinueCase
-            Case "GET"
-                $sRequest = $aUri[$HttpUri_Path]; let's see what file he actually wants
-                ;FIXME: if codeblock below: disallows any dot files like .htaccess
-                If StringInStr(StringReplace($sRequest,"\","/"), "/.") Then ; Disallow any attempts to go back a folder
-                    _HTTP_SendFileNotFoundError($aSocket[$x]) ; sends back an error
-                Else
-                    $sLocalPath = _WinAPI_GetFullPathName($sRootDir & "\" & $sRequest);TODO: replace every instance of ($sRootDir & "\" & $sRequest) with $sLocalPath
-                    Select
-                        Case StringInStr(FileGetAttrib($sLocalPath),"D")>0 ;user has requested a directory
-                            Local $iStart=1
-                            Local $iEnd=StringInStr($DirectoryIndex, ",")-$iStart
-                            Local $sIndex
-                            If Not (StringRight($sLocalPath, 1)="\") Then $sLocalPath &= "\"
-                            While 1
-                                $sIndex=StringMid($DirectoryIndex, $iStart, $iEnd)
-                                If FileExists($sLocalPath & $sIndex ) Then ExitLoop
-                                If $iEnd<1 Then ExitLoop
-                                $iStart=$iStart+$iEnd+1
-                                $iEnd=StringInStr($DirectoryIndex, ",", 0, 1, $iStart)
-                                $iEnd=$iEnd>0?$iEnd-$iStart:$iEnd-1
-                            WEnd
-
-                            If Not FileExists($sLocalPath&$sIndex) Then
-                                If $bAllowIndexes Then;And FileExists(@ScriptDir & "\index.php") Then
-                                    _HTTP_IndexDir($aSocket[$x], $sLocalPath)
-                                Else
-                                    _HTTP_SendHTML($aSocket[$x], "403 Forbidden", "403 Forbidden")
-                                EndIf
-                            Else
-                                $sLocalPath = $sLocalPath&$sIndex
-                                ContinueCase
-                            EndIf
-                        Case FileExists($sLocalPath) ; makes sure the file that the user wants exists
-                            $iFileType = StringInStr($sLocalPath, ".", 0, -1)
-                            $sFileType = $iFileType>0 ? StringMid($sLocalPath,$iFileType+1) : ""
-                            If $sFileType = "php" And Not $PHP_Path = "" Then
-                                _HTTP_GCI_PHP()
-                            ElseIf $sFileType = "au3" And Not $AU3_Path = "" Then
-                                _HTTP_GCI_AU3()
-                            Else
-                                _HTTP_SendFile($aSocket[$x], $sLocalPath, Default, "200 OK", True)
-                            EndIf
-                        Case Else
-                            _HTTP_SendFileNotFoundError($aSocket[$x]) ; File does not exist, so we'll send back an error..
-                    EndSelect
-                EndIf
-            Case "POST" ; user has come to us with data, we need to parse that data and based on that do something special
-                _HTTP_SendFile($aSocket[$x], $sRootDir & "\index.html", "text/html") ; Sends back the new file we just created
-            Case Else
-                _HTTP_SendHTML($aSocket[$x], "", "501 Not Implemented")
-        EndSwitch
-
-        TCPCloseSocket($aSocket[$x])
-        $aSocket[$x] = -1 ; the socket is closed so we reset the socket so that we may accept new clients
-        $sBuffer[$x] = "" ; clears the buffer because we just used to buffer and did some actions based on them
+    For $x = 0 to UBound($aSocket)-1 ; Fills the entire socket array with -1 integers, so that the server knows they are empty.
+        $aSocket[$x] = -1
     Next
 
-    Sleep(10)
-WEnd
+    TCPStartup() ; AutoIt needs to initialize the TCP functions
+
+    $iMainSocket = TCPListen($sIP,$iPort, $iMaxUsers) ;create main listening socket
+    If @error Then ; if you fail creating a socket, exit the application
+        MsgBox(0x20, "AutoIt Webserver", "Unable to create a socket on port " & $iPort & ".") ; notifies the user that the HTTP server will not run
+        Exit ; if your server is part of a GUI that has nothing to do with the server, you'll need to remove the Exit keyword and notify the user that the HTTP server will not work.
+    EndIf
+
+    Debug("Server created on " & $sServerAddress)
+
+    While 1
+        Local $iNewSocket = TCPAccept($iMainSocket) ; Tries to accept incoming connections
+
+        If $iNewSocket <> -1 Then ; Verifies that there actually is an incoming connection
+            For $x = 0 to UBound($aSocket)-1 ; Attempts to store the incoming connection
+                If $aSocket[$x] = -1 Then
+                    $aSocket[$x] = $iNewSocket ;store the new socket
+                    Debug("Accepted new request on position: "&$x)
+                    ExitLoop
+                EndIf
+            Next
+            If $aSocket[$x] = -1 Then TCPCloseSocket($iNewSocket); No room for socket
+        EndIf
+
+        For $x = 0 to UBound($aSocket)-1 ; A big loop to receive data from everyone connected
+            If $aSocket[$x] = -1 Then ContinueLoop ; if the socket is empty, it will continue to the next iteration, doing nothing
+
+            Debug("("&$aSocket[$x]&")Getting request information on position: "&$x)
+
+            $sNewData = TCPRecv($aSocket[$x], 1024, 1) ; Receives a whole lot of data if possible
+            If @error <> 0 Or @extended<>0 Then ; Client has disconnected
+                TCPCloseSocket($aSocket[$x])
+                Debug("Client has disconnected on position: "&$x)
+                $aSocket[$x] = -1 ; Socket is freed so that a new user may join
+                $sBuffer[$x] = ""
+                ContinueLoop ; Go to the next iteration of the loop, not really needed but looks oh so good
+            EndIf
+
+            $sNewData = BinaryToString($sNewData) ; Receives a whole lot of data if possible
+
+            Debug(VarGetType($sNewData)&"("&StringLen($sNewData)&"): "&$sNewData)
+            $sBuffer[$x] &= $sNewData ;store it in the buffer
+
+            If StringInStr(StringStripCR($sBuffer[$x]),@LF&@LF) Then ; if the request headers are ready ..
+                $aRequest = _HTTP_ParseHttpRequest($sBuffer[$x])
+                $aContentLength = StringRegExp($sBuffer[$x], "(?m)^Content-Length: ([0-9]+)$", 1)
+                If @error = 0 And Not ($aContentLength[0] = BinaryLen(StringToBinary($aRequest[$HttpRequest_BODY]))) Then ContinueLoop
+            Else
+                ContinueLoop
+            EndIf
+
+            Debug("Starting processing request on position: "&$x)
+            
+            $aRequest = _HTTP_ParseHttpRequest($sBuffer[$x])
+            $aHeaders = _HTTP_ParseHttpHeaders($aRequest[$HttpRequest_HEADERS])
+            $aUri = _HTTP_ParseURI($aRequest[$HttpRequest_URI])
+
+            Debug("aUri[Path]: "&$aUri[$HttpUri_Path])
+            ;Debug("aUri[Query]: "&$aUri[$httpUri_Query])
+            ;Debug("LocalPath: " & _WinAPI_GetFullPathName($sRootDir & "\" & $aUri[$HttpUri_Path]))
+
+            Switch $aRequest[$HttpRequest_METHOD]
+                ;Case "HEAD"
+                    ;TODO
+                Case "POST"
+                    ContinueCase
+                Case "GET"
+                    $sRequest = $aUri[$HttpUri_Path]; let's see what file he actually wants
+                    ;FIXME: if codeblock below: disallows any dot files like .htaccess
+                    If StringInStr(StringReplace($sRequest,"\","/"), "/.") Then ; Disallow any attempts to go back a folder
+                        _HTTP_SendFileNotFoundError($aSocket[$x]) ; sends back an error
+                    Else
+                        $sLocalPath = _WinAPI_GetFullPathName($sRootDir & "\" & $sRequest);TODO: replace every instance of ($sRootDir & "\" & $sRequest) with $sLocalPath
+                        Select
+                            Case StringInStr(FileGetAttrib($sLocalPath),"D")>0 ;user has requested a directory
+                                Local $iStart=1
+                                Local $iEnd=StringInStr($DirectoryIndex, ",")-$iStart
+                                Local $sIndex
+                                If Not (StringRight($sLocalPath, 1)="\") Then $sLocalPath &= "\"
+                                While 1
+                                    $sIndex=StringMid($DirectoryIndex, $iStart, $iEnd)
+                                    If FileExists($sLocalPath & $sIndex ) Then ExitLoop
+                                    If $iEnd<1 Then ExitLoop
+                                    $iStart=$iStart+$iEnd+1
+                                    $iEnd=StringInStr($DirectoryIndex, ",", 0, 1, $iStart)
+                                    $iEnd=$iEnd>0?$iEnd-$iStart:$iEnd-1
+                                WEnd
+
+                                If Not FileExists($sLocalPath&$sIndex) Then
+                                    If $bAllowIndexes Then;And FileExists(@ScriptDir & "\index.php") Then
+                                        _HTTP_IndexDir($aSocket[$x], $sLocalPath)
+                                    Else
+                                        _HTTP_SendHTML($aSocket[$x], "403 Forbidden", "403 Forbidden")
+                                    EndIf
+                                Else
+                                    $sLocalPath = $sLocalPath&$sIndex
+                                    ContinueCase
+                                EndIf
+                            Case FileExists($sLocalPath) ; makes sure the file that the user wants exists
+                                $iFileType = StringInStr($sLocalPath, ".", 0, -1)
+                                $sFileType = $iFileType>0 ? StringMid($sLocalPath,$iFileType+1) : ""
+                                If $sFileType = "php" And Not $PHP_Path = "" Then
+                                    _HTTP_GCI_PHP()
+                                ElseIf $sFileType = "au3" And Not $AU3_Path = "" Then
+                                    _HTTP_GCI_AU3()
+                                Else
+                                    _HTTP_SendFile($aSocket[$x], $sLocalPath, Default, "200 OK", True)
+                                EndIf
+                            Case Else
+                                _HTTP_SendFileNotFoundError($aSocket[$x]) ; File does not exist, so we'll send back an error..
+                        EndSelect
+                    EndIf
+                Case "POST" ; user has come to us with data, we need to parse that data and based on that do something special
+                    _HTTP_SendFile($aSocket[$x], $sRootDir & "\index.html", "text/html") ; Sends back the new file we just created
+                Case Else
+                    _HTTP_SendHTML($aSocket[$x], "", "501 Not Implemented")
+            EndSwitch
+
+            TCPCloseSocket($aSocket[$x])
+            $aSocket[$x] = -1 ; the socket is closed so we reset the socket so that we may accept new clients
+            $sBuffer[$x] = "" ; clears the buffer because we just used to buffer and did some actions based on them
+        Next
+
+        Sleep(10)
+    WEnd
+EndFunc
 
 Func _HTTP_SendHeaders($hSocket, $headers = "", $status = $HTTP_STATUS_200)
     $headers = _HTTP_MergeHttpHeaders( _
