@@ -8,7 +8,6 @@
 #include <String.au3>
 
 Opt("TCPTimeout", 10)
-Opt("GUIOnEventMode", 1)
 
 ;# Enums used with the response of _HTTP_ParseHttpRequest method
 Global Enum $HttpRequest_METHOD, $HttpRequest_URI, $HttpRequest_PROTOCOL, $HttpRequest_HEADERS, $HttpRequest_BODY
