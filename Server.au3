@@ -225,13 +225,14 @@ WEnd
 
 Func _HTTP_SendHeaders($hSocket, $headers = "", $status = $HTTP_STATUS_200)
     $headers = _HTTP_MergeHttpHeaders( _
+        "HTTP/1.1 " & $status & @LF & _
         "Server: " & $sServerName & @LF & _
         "Connection: Keep-Alive" & @LF & _
         "Content-Type: text/plain; charset=UTF-8" & @LF, _
         $headers _
     )
 
-    $headers = "HTTP/1.1 " & $status & @LF & $headers & @LF
+    $headers = $headers & @LF
 
     _HTTP_SendContent($hSocket, $headers)
 EndFunc
@@ -366,6 +367,17 @@ Func _HTTP_ParseHttpHeaders($headers)
     Local $aHeaders = StringRegExp($headers, "(?m)^([A-Za-z\-]+)\: (.+)$", 3)
     If @error <> 0 Then Return SetError(@error, @extended, Default)
     Return $aHeaders
+EndFunc
+
+#cs
+# Parse HTTP status line
+# @param string $headers The raw HTTP head
+# @return string
+#ce
+Func _HTTP_ParseHttpStatusLine($headers)
+    Local $aStatusLines = StringRegExp($headers, '(?m)^(HTTP\/[0-9](?:\.[0-9])? [0-9]{3} .*)$', 3)
+    If @error <> 0 Then Return SetError(@error, @extended, '')
+    Return UBound($aStatusLines, 1) > 0 ? SetExtended(UBound($aStatusLines, 1), $aStatusLines[UBound($aStatusLines, 1) - 1]) : SetExtended(0, '')
 EndFunc
 
 Func decodeURI($sString)
@@ -606,6 +618,9 @@ EndFunc
 #cs
 # Merge two header strings
 #
+# The header strings are allowed to contain the HTTP status line.
+# Likewise this function also returns a header line, if one of the two headers contained one.
+#
 # @param string $headers1
 # @param string $headers2
 #
@@ -613,6 +628,9 @@ EndFunc
 #ce
 Func _HTTP_MergeHttpHeaders($headers1, $headers2)
     Local $headers = ""
+    ; NOTE: status line is not part of the "headers" directly, but part of head.
+    Local $statusLine1 = _HTTP_ParseHttpStatusLine($headers1)
+    Local $statusLine2 = _HTTP_ParseHttpStatusLine($headers2)
     $headers1 = _HTTP_ParseHttpHeaders($headers1)
     $headers2 = _HTTP_ParseHttpHeaders($headers2)
     For $i=0 To UBound($headers1, 1)-1 Step +2
@@ -620,6 +638,10 @@ Func _HTTP_MergeHttpHeaders($headers1, $headers2)
             If StringLower($headers1[$i]) = "set-cookie" Then ContinueLoop 1
             If StringLower($headers1[$i]) = StringLower($headers2[$j]) Then
                 $headers &= StringFormat("%s: %s%s", $headers2[$j], $headers2[$j+1], @LF)
+                ContinueLoop 2
+            EndIf
+            If StringLower($headers1[$i]) = "status" Then
+                $statusLine1 = StringFormat("%s %s", 'HTTP/1.1', $headers1[$i+1])
                 ContinueLoop 2
             EndIf
         Next
@@ -630,9 +652,17 @@ Func _HTTP_MergeHttpHeaders($headers1, $headers2)
         For $j=0 To UBound($headers1, 1)-1 Step +2
             If StringLower($headers2[$i]) = "set-cookie" Then ContinueLoop 1
             If StringLower($headers1[$j]) = StringLower($headers2[$i]) Then ContinueLoop 2
+            If StringLower($headers2[$i]) = "status" Then
+                $statusLine2 = StringFormat("%s %s", 'HTTP/1.1', $headers2[$i+1])
+                ContinueLoop 2
+            EndIf
         Next
         $headers &= StringFormat("%s: %s%s", $headers2[$i], $headers2[$i+1], @LF)
     Next
+
+    $statusLine2 = ($statusLine2 == "") ? $statusLine1 : $statusLine2
+    $statusLine2 = ($statusLine2 == "") ? "HTTP/1.1 "&$HTTP_STATUS_200 : $statusLine2
+    $headers = StringFormat('%s%s', $statusLine2, @LF) & $headers
 
     Return $headers
 EndFunc
