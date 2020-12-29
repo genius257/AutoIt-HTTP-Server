@@ -1,11 +1,8 @@
-#include <Array.au3>
 #include <NamedPipes.au3>
-#include <WinAPI.au3>
 #include <WinAPIProc.au3>
 #include <WinAPIFiles.au3>
 #include <WinAPIHObj.au3>
 #include <Date.au3>
-#include <String.au3>
 
 Opt("TCPTimeout", 10)
 
