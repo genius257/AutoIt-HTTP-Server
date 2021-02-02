@@ -675,8 +675,6 @@ Func _HTTP_Server_Request_Handle($hSocket, $sRequest)
                         _HTTP_SendFileNotFoundError($aSocket[$x]) ; File does not exist, so we'll send back an error..
                 EndSelect
             EndIf
-        Case "POST" ; user has come to us with data, we need to parse that data and based on that do something special
-            _HTTP_SendFile($aSocket[$x], $sRootDir & "\index.html", "text/html") ; Sends back the new file we just created
         Case Else
             _HTTP_SendHTML($aSocket[$x], "", "501 Not Implemented")
     EndSwitch
