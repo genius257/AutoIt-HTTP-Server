@@ -187,7 +187,7 @@ Func _HTTP_SendData($hSocket, $bData, $sMimeType, $sReply = $HTTP_STATUS_200, $s
     Local $aResult = DllCall("ws2_32.dll", 'int', 'ioctlsocket', 'int', $hSocket, 'long', 0x8004667E, 'ulong*', 1)
     Local $aResult = DllCall("ws2_32.dll", 'int', 'ioctlsocket', 'int', $hSocket, 'long', 0x4010, 'ulong*', 1);IPX_IMMEDIATESPXACK
 
-    $tBuffer = DllStructCreate("BYTE[1024]")
+    $tBuffer = DllStructCreate("BYTE[1000000]"); 1MB
     DllStructSetData($tBuffer, 1, $sPacket)
 
     $aResult = DllCall("ws2_32.dll", 'int', 'send', 'int', $hSocket, 'struct*', $tBuffer, 'int', BinaryLen($sPacket), 'int', 0)
