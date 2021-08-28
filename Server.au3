@@ -393,6 +393,7 @@ Func _HTTP_CGI($sAppName, $sCommand = Null)
     Local Static $stderr = _WinAPI_GetStdHandle(2)
 
     Local $STARTF_USESTDHANDLES = 0x100
+    Local $STARTF_FORCEOFFFEEDBACK = 0x00000080
     Local $QUERY_STRING = $aUri[$httpUri_Query]
     ; Set up security attributes
     $tSecurity = DllStructCreate($tagSECURITY_ATTRIBUTES)
@@ -403,7 +404,7 @@ Func _HTTP_CGI($sAppName, $sCommand = Null)
     $tProcess = DllStructCreate($tagPROCESS_INFORMATION)
     $tStartup = DllStructCreate($tagSTARTUPINFO)
     DllStructSetData($tStartup, "Size", DllStructGetSize($tStartup))
-    DllStructSetData($tStartup, "Flags", $STARTF_USESTDHANDLES)
+    DllStructSetData($tStartup, "Flags", BitOR($STARTF_USESTDHANDLES, $STARTF_FORCEOFFFEEDBACK))
     DllStructSetData($tStartup, "StdInput", $stdinRd)
     DllStructSetData($tStartup, "StdOutput", $stdoutWr)
     DllStructSetData($tStartup, "StdError", $stderr)
