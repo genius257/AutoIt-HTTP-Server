@@ -183,9 +183,9 @@ Func _HTTP_SendData($hSocket, $bData, $sMimeType, $sReply = $HTTP_STATUS_200, $s
     "Content-Type: " & $sMimeType & "; charset=UTF-8" & @CRLF & _
     (($sLastModified="")?"":"Last-Modified: "&$sLastModified&@CRLF)& _
     @CRLF)
-    ;[set non-blocking mode]
-    Local $aResult = DllCall("ws2_32.dll", 'int', 'ioctlsocket', 'int', $hSocket, 'long', 0x8004667E, 'ulong*', 1)
-    Local $aResult = DllCall("ws2_32.dll", 'int', 'ioctlsocket', 'int', $hSocket, 'long', 0x4010, 'ulong*', 1);IPX_IMMEDIATESPXACK
+    ;[set non-blocking mode] ;TODO: the blocking mode currently will result in the connection closing before the client getting all data. there is also a concern taht we don't check if the TCP buffer is full while pushing data. Until a good solution for this is found, async data transfer will be disabled.
+    ;Local $aResult = DllCall("ws2_32.dll", 'int', 'ioctlsocket', 'int', $hSocket, 'long', 0x8004667E, 'ulong*', 1)
+    ;Local $aResult = DllCall("ws2_32.dll", 'int', 'ioctlsocket', 'int', $hSocket, 'long', 0x4010, 'ulong*', 1);IPX_IMMEDIATESPXACK
 
     $tBuffer = DllStructCreate("BYTE[1000000]"); 1MB
     DllStructSetData($tBuffer, 1, $sPacket)
@@ -202,7 +202,7 @@ Func _HTTP_SendData($hSocket, $bData, $sMimeType, $sReply = $HTTP_STATUS_200, $s
     WEnd
 
     ;[set blocking mode]
-    $aResult = DllCall("ws2_32.dll", 'int', 'ioctlsocket', 'int', $hSocket, 'long', 0x8004667E, 'ulong*', 0)
+    ;$aResult = DllCall("ws2_32.dll", 'int', 'ioctlsocket', 'int', $hSocket, 'long', 0x8004667E, 'ulong*', 0)
 
     ;$sPacket = Binary(@CRLF & @CRLF) ; Finish the packet
     ;TCPSend($hSocket,$sPacket)
