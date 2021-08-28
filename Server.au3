@@ -2,6 +2,7 @@
 #include <WinAPIProc.au3>
 #include <WinAPIFiles.au3>
 #include <Date.au3>
+#include <AutoItConstants.au3>
 
 Opt("TCPTimeout", 10)
 
@@ -108,6 +109,7 @@ Func _HTTP_Server_Start()
 
             Debug("Starting processing request on position: "&$x)
 
+            Assign("x", $x, BitOR($ASSIGN_FORCEGLOBAL, $ASSIGN_EXISTFAIL)) ; NOTE $x is forced local, when used in For loop above. This gives issues when other functions need the $x value.
             $_HTTP_Server_Request_Handler($aSocket[$x], $sBuffer[$x])
 
             TCPCloseSocket($aSocket[$x])
