@@ -125,7 +125,7 @@ Func _HTTP_SendHeaders($hSocket, $headers = "", $status = $HTTP_STATUS_200)
     $headers = _HTTP_MergeHttpHeaders( _
         "HTTP/1.1 " & $status & @LF & _
         "Server: " & $sServerName & @LF & _
-        "Connection: Keep-Alive" & @LF & _
+        "Connection: close" & @LF & _
         "Content-Type: text/plain; charset=UTF-8" & @LF, _
         $headers _
     )
@@ -180,7 +180,7 @@ Func _HTTP_SendData($hSocket, $bData, $sMimeType, $sReply = $HTTP_STATUS_200, $s
     Local $a
     Local $sPacket = Binary("HTTP/1.1 " & $sReply & @CRLF & _
     "Server: " & $sServerName & @CRLF & _
-    "Connection: Keep-Alive" & @CRLF & _
+    "Connection: close" & @CRLF & _
     "Content-Lenght: " & BinaryLen($bData) & @CRLF & _
     "Content-Type: " & $sMimeType & "; charset=UTF-8" & @CRLF & _
     (($sLastModified="")?"":"Last-Modified: "&$sLastModified&@CRLF)& _
