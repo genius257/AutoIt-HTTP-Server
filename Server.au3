@@ -165,7 +165,7 @@ Func _HTTP_SendFile($hSocket, $sFileLoc, $sMimeType = Default, $sReply = "200 OK
     EndIf
 
     $hFile = FileOpen($sFileLoc,16)
-    $bFileData = FileRead($hFile)
+    Local $bFileData = FileRead($hFile)
     FileClose($hFile)
 
     If $bLastModified Then $aFileLastModified = FileGetTime($sFileLoc, 0, 0)
@@ -189,10 +189,10 @@ Func _HTTP_SendData($hSocket, $bData, $sMimeType, $sReply = $HTTP_STATUS_200, $s
     ;Local $aResult = DllCall("ws2_32.dll", 'int', 'ioctlsocket', 'int', $hSocket, 'long', 0x8004667E, 'ulong*', 1)
     ;Local $aResult = DllCall("ws2_32.dll", 'int', 'ioctlsocket', 'int', $hSocket, 'long', 0x4010, 'ulong*', 1);IPX_IMMEDIATESPXACK
 
-    $tBuffer = DllStructCreate("BYTE[1000000]"); 1MB
+    Local $tBuffer = DllStructCreate("BYTE[1000000]"); 1MB
     DllStructSetData($tBuffer, 1, $sPacket)
 
-    $aResult = DllCall("ws2_32.dll", 'int', 'send', 'int', $hSocket, 'struct*', $tBuffer, 'int', BinaryLen($sPacket), 'int', 0)
+    Local $aResult = DllCall("ws2_32.dll", 'int', 'send', 'int', $hSocket, 'struct*', $tBuffer, 'int', BinaryLen($sPacket), 'int', 0)
     ;TCPSend($hSocket,$sPacket) ; Send start of packet
 
     While BinaryLen($bData) ; Send data in chunks (most code by Larry)
@@ -283,6 +283,7 @@ Func decodeURI($sString)
     Local $sPattern = "(?:%[0-9a-fA-F]{2})+"
     Local $iOffset = 1, $iDone = 0, $iMatchOffset
 
+    Local $aRes, $sRet
     While True
         $aRes = StringRegExp($sString, $sPattern, 2, $iOffset)
         If @error Then ExitLoop
@@ -334,7 +335,7 @@ EndFunc
 
 Func _HTTP_IndexDir($hSocket, $dir)
     _HTTP_SendHeaders($hSocket, "Content-Type: text/html"&@CRLF&"Transfer-Encoding: chunked")
-    $title = "Index of "&StringRegExpReplace(StringRegExpReplace(StringTrimLeft($dir, StringLen($sRootDir)), "\\", "/"), "/$", "")
+    Local $title = "Index of "&StringRegExpReplace(StringRegExpReplace(StringTrimLeft($dir, StringLen($sRootDir)), "\\", "/"), "/$", "")
     _HTTP_SendChunk($hSocket, '<!DOCTYPE html><html><head><title>'&$title&'</title>')
     _HTTP_SendChunk($hSocket, "<style>th {text-align:left;} .d, .f {background-size:contain;background-repeat:no-repeat;background-position:center;min-width:15px;min-height:15px;} .d{background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MiA1NSI+PHN0eWxlPjwhW0NEQVRBWy5BLC5CLC5De3N0cm9rZTojNDM0MjQyO3N0cm9rZS13aWR0aDoxLjI1O3N0cm9rZS1taXRlcmxpbWl0OjEwfV1dPjwvc3R5bGU+PGxpbmVhckdyYWRpZW50IGlkPSJBIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjM1Ljk0MyIgeTE9Ii43OSIgeDI9IjM1Ljk0MyIgeTI9IjE4LjMzNiI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZmNmY2ZkIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZmZmIi8+PC9saW5lYXJHcmFkaWVudD48cGF0aCBjbGFzcz0iQSIgZD0iTTIuNiAxOC4zVjIuNWMwLS45LjctMS43IDEuNy0xLjdoMjMuM2w2LjcgNWgzMy4zYy45IDAgMS43LjggMS43IDEuN3YxMC45SDIuNnoiIGZpbGw9InVybCgjQSkiLz48bGluZWFyR3JhZGllbnQgaWQ9IkIiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iMzUuOTQzIiB5MT0iNTQuMjYzIiB4Mj0iMzUuOTQzIiB5Mj0iOS45ODEiPjxzdG9wIG9mZnNldD0iLjEwOSIgc3RvcC1jb2xvcj0iI2RlYmUwMCIvPjxzdG9wIG9mZnNldD0iLjUzMiIgc3RvcC1jb2xvcj0iI2NmYWQwNCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2EwNzgwMiIvPjwvbGluZWFyR3JhZGllbnQ+PHBhdGggY2xhc3M9IkIiIGQ9Ik00LjMgNTQuM2g2My4zYy45IDAgMS42LS44IDEuNy0xLjdMNzEgMTEuN2MwLS45LS43LTEuNy0xLjctMS43aC0yNWwtNi43IDVoLTM1Yy0uOSAwLTEuNy44LTEuNyAxLjdsMS43IDM1LjljLjEuOS44IDEuNyAxLjcgMS43eiIgZmlsbD0idXJsKCNCKSIvPjxwYXRoIGNsYXNzPSJDIiBkPSJNNy42IDQuMWgxOC4zYy45IDAgMS43LjggMS43IDEuN3MtLjcgMS43LTEuNyAxLjdINy42Yy0uOSAwLTEuNy0uOC0xLjctMS43cy44LTEuNyAxLjctMS43eiIgZmlsbD0iIzQzNDI0MiIvPjwvc3ZnPg==');} .f{background-image:url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MiAxMDAiPjxsaW5lYXJHcmFkaWVudCBpZD0iQSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiIHgxPSIzNiIgeTE9Ijk5IiB4Mj0iMzYiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNjOGQ0ZGIiLz48c3RvcCBvZmZzZXQ9Ii4xMzkiIHN0b3AtY29sb3I9IiNkOGUxZTYiLz48c3RvcCBvZmZzZXQ9Ii4zNTkiIHN0b3AtY29sb3I9IiNlYmYwZjMiLz48c3RvcCBvZmZzZXQ9Ii42MTciIHN0b3AtY29sb3I9IiNmOWZhZmIiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZmYiLz48L2xpbmVhckdyYWRpZW50PjxwYXRoIGQ9Ik00NSAxbDI3IDI2LjdWOTlIMFYxaDQ1eiIgZmlsbD0idXJsKCNBKSIvPjxwYXRoIGQ9Ik00NSAxbDI3IDI2LjdWOTlIMFYxaDQ1eiIgZmlsbC1vcGFjaXR5PSIwIiBzdHJva2U9IiM3MTkxYTEiIHN0cm9rZS13aWR0aD0iMiIvPjxsaW5lYXJHcmFkaWVudCBpZD0iQiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiIHgxPSI0NS4wNjgiIHkxPSIyNy43OTYiIHgyPSI1OC41NjgiIHkyPSIxNC4yOTUiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmZiIvPjxzdG9wIG9mZnNldD0iLjM1IiBzdG9wLWNvbG9yPSIjZmFmYmZiIi8+PHN0b3Agb2Zmc2V0PSIuNTMyIiBzdG9wLWNvbG9yPSIjZWRmMWY0Ii8+PHN0b3Agb2Zmc2V0PSIuNjc1IiBzdG9wLWNvbG9yPSIjZGRlNWU5Ii8+PHN0b3Agb2Zmc2V0PSIuNzk5IiBzdG9wLWNvbG9yPSIjYzdkM2RhIi8+PHN0b3Agb2Zmc2V0PSIuOTA4IiBzdG9wLWNvbG9yPSIjYWRiZGM3Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjOTJhNWIwIi8+PC9saW5lYXJHcmFkaWVudD48cGF0aCBkPSJNNDUgMWwyNyAyNi43SDQ1VjF6IiBmaWxsPSJ1cmwoI0IpIi8+PHBhdGggZD0iTTQ1IDFsMjcgMjYuN0g0NVYxeiIgZmlsbC1vcGFjaXR5PSIwIiBzdHJva2U9IiM3MTkxYTEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVqb2luPSJiZXZlbCIvPjwvc3ZnPg==');}</style>")
     _HTTP_SendChunk($hSocket, "</head><body><h1>"&$title&'</h1><table><tr><th></th><th>Name</th><th>Size</th></tr><tr><td class="d"></td><td><a href="..">..</a></td></tr>');TODO: replace special charaters in $title within the h1 element with HTML escaped charaters
@@ -398,13 +399,13 @@ Func _HTTP_CGI($sAppName, $sCommand = Null)
     Local $STARTF_FORCEOFFFEEDBACK = 0x00000080
     Local $QUERY_STRING = $aUri[$httpUri_Query]
     ; Set up security attributes
-    $tSecurity = DllStructCreate($tagSECURITY_ATTRIBUTES)
+    Local $tSecurity = DllStructCreate($tagSECURITY_ATTRIBUTES)
     DllStructSetData($tSecurity, "Length", DllStructGetSize($tSecurity))
     DllStructSetData($tSecurity, "InheritHandle", True)
     _NamedPipes_CreatePipe($stdinRd, $stdinWr, $tSecurity)
     _NamedPipes_CreatePipe($stdoutRd, $stdoutWr, $tSecurity)
-    $tProcess = DllStructCreate($tagPROCESS_INFORMATION)
-    $tStartup = DllStructCreate($tagSTARTUPINFO)
+    Local $tProcess = DllStructCreate($tagPROCESS_INFORMATION)
+    Local $tStartup = DllStructCreate($tagSTARTUPINFO)
     DllStructSetData($tStartup, "Size", DllStructGetSize($tStartup))
     DllStructSetData($tStartup, "Flags", BitOR($STARTF_USESTDHANDLES, $STARTF_FORCEOFFFEEDBACK))
     DllStructSetData($tStartup, "StdInput", $stdinRd)
@@ -419,7 +420,7 @@ Func _HTTP_CGI($sAppName, $sCommand = Null)
 
     Local Static $tEnv = GetEnvString()
 
-    $sEnviroment = _
+    Local $sEnviroment = _
     "CONTENT_LENGTH="&StringLen($aRequest[$HttpRequest_BODY])&Chr(0)& _
     "CONTENT_TYPE=application/x-www-form-urlencoded"&Chr(0)& _
     "GATEWAY_INTERFACE=CGI/1.1"&Chr(0)& _
