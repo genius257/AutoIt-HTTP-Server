@@ -136,6 +136,7 @@ Func _HTTP_SendHeaders($hSocket, $headers = "", $status = $HTTP_STATUS_200)
 EndFunc
 
 Func _HTTP_SendContent($hSocket, $bData)
+    Local $a
     If Not IsBinary($bData) Then $bData = Binary($bData)
     While BinaryLen($bData) ; Send data in chunks (most code by Larry)
         $a = TCPSend($hSocket, $bData) ; TCPSend returns the number of bytes sent
