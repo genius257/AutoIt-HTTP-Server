@@ -488,7 +488,7 @@ Func _HTTP_CGI($sAppName, $sCommand = Null)
                         $l = StringRegExp($sBuffer, "\r?\n\r?\n", 1)
                         $i = @extended
                         $l = StringLen($l[0])
-                        _HTTP_SendHeaders($aSocket[$x], "Transfer-Encoding: chunked"&@CRLF&StringLeft($sBuffer, $i-3))
+                         _HTTP_SendHeaders($aSocket[$x], "Cache-Control: no-store, max-age=0"&@LF&"Transfer-Encoding: chunked"&@LF&StringLeft($sBuffer, $i-3))
                         _HTTP_SendChunk($aSocket[$x], StringMid($sBuffer, $i))
                         $sBuffer = Null; to try and free up some space
                     EndIf
