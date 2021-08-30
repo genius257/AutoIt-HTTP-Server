@@ -179,13 +179,13 @@ EndFunc
 #ce
 Func _HTTP_SendData($hSocket, $bData, $sMimeType, $sReply = $HTTP_STATUS_200, $sLastModified = ""); FIXME: currently no headers are sent!
     Local $a
-    Local $sPacket = Binary("HTTP/1.1 " & $sReply & @CRLF & _
-    "Server: " & $sServerName & @CRLF & _
-    "Connection: close" & @CRLF & _
-    "Content-Lenght: " & BinaryLen($bData) & @CRLF & _
-    "Content-Type: " & $sMimeType & "; charset=UTF-8" & @CRLF & _
-    (($sLastModified="")?"":"Last-Modified: "&$sLastModified&@CRLF)& _
-    @CRLF)
+    Local $sPacket = Binary("HTTP/1.1 " & $sReply & @LF & _
+    "Server: " & $sServerName & @LF & _
+    "Connection: close" & @LF & _
+    "Content-Lenght: " & BinaryLen($bData) & @LF & _
+    "Content-Type: " & $sMimeType & "; charset=UTF-8" & @LF & _
+    (($sLastModified="")?"":"Last-Modified: "&$sLastModified&@LF)& _
+    @LF)
     ;[set non-blocking mode] ;TODO: the blocking mode currently will result in the connection closing before the client getting all data. there is also a concern taht we don't check if the TCP buffer is full while pushing data. Until a good solution for this is found, async data transfer will be disabled.
     ;Local $aResult = DllCall("ws2_32.dll", 'int', 'ioctlsocket', 'int', $hSocket, 'long', 0x8004667E, 'ulong*', 1)
     ;Local $aResult = DllCall("ws2_32.dll", 'int', 'ioctlsocket', 'int', $hSocket, 'long', 0x4010, 'ulong*', 1);IPX_IMMEDIATESPXACK
