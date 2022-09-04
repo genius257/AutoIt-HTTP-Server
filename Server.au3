@@ -140,6 +140,9 @@ Func _HTTP_SendContent($hSocket, $bData)
     If Not IsBinary($bData) Then $bData = Binary($bData)
     While BinaryLen($bData) ; Send data in chunks (most code by Larry)
         $a = TCPSend($hSocket, $bData) ; TCPSend returns the number of bytes sent
+        If @error <> 0 Then
+            Return;FIXME: if client disconnects early this line is needed, to avoid endless loop, but need to check "Windows Sockets Error Codes" for potential non exitloop issues, like BUSY state.
+        EndIf
         $bData = BinaryMid($bData, $a+1, BinaryLen($bData)-$a)
     WEnd
 EndFunc
