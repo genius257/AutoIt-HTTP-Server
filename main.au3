@@ -27,6 +27,7 @@ EndFunc
 
 Func LoadSettings()
     Local $sIniFile = _WinAPI_GetFullPathName("settings.ini")
+    If Not @Compiled Then ConsoleWrite(StringFormat('Reading settings from: "%s"\n', $sIniFile))
 
     $sRootDir = _WinAPI_GetFullPathName(IniRead($sIniFile, "core", "RootDir", '.\www\')); The absolute path to the root directory of the server.
     $sIP = IniRead($sIniFile, "core", "IP", $sIP);	http://localhost/ and more
