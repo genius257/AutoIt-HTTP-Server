@@ -26,6 +26,7 @@ Func OpenInBrowser()
 EndFunc
 
 Func LoadSettings()
+    $sRootDir = _WinAPI_GetFullPathName(IniRead("settings.ini", "core", "RootDir", '.\www\')); The absolute path to the root directory of the server.
     $sIP = IniRead("settings.ini", "core", "IP", $sIP);	http://localhost/ and more
     $iPort = Int(IniRead("settings.ini", "core", "Port", $iPort)); the listening port
     $iMaxUsers =  Int(IniRead("settings.ini", "core", "MaxUsers", $iMaxUsers)); Maximum number of users who can simultaneously get/post
