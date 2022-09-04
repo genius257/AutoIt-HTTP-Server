@@ -26,15 +26,17 @@ Func OpenInBrowser()
 EndFunc
 
 Func LoadSettings()
-    $sRootDir = _WinAPI_GetFullPathName(IniRead("settings.ini", "core", "RootDir", '.\www\')); The absolute path to the root directory of the server.
-    $sIP = IniRead("settings.ini", "core", "IP", $sIP);	http://localhost/ and more
-    $iPort = Int(IniRead("settings.ini", "core", "Port", $iPort)); the listening port
-    $iMaxUsers =  Int(IniRead("settings.ini", "core", "MaxUsers", $iMaxUsers)); Maximum number of users who can simultaneously get/post
-    $DirectoryIndex=IniRead("settings.ini", "core", "DirectoryIndex", $DirectoryIndex)
-    $bAllowIndexes=IniRead("settings.ini", "core", "AllowIndexes", $bAllowIndexes)
+    Local $sIniFile = _WinAPI_GetFullPathName("settings.ini")
 
-    $PHP_Path = IniRead("settings.ini", "PHP", "Path", $PHP_Path)
-    $AU3_Path = IniRead("settings.ini", "AU3", "Path", $AU3_Path)
+    $sRootDir = _WinAPI_GetFullPathName(IniRead($sIniFile, "core", "RootDir", '.\www\')); The absolute path to the root directory of the server.
+    $sIP = IniRead($sIniFile, "core", "IP", $sIP);	http://localhost/ and more
+    $iPort = Int(IniRead($sIniFile, "core", "Port", $iPort)); the listening port
+    $iMaxUsers =  Int(IniRead($sIniFile, "core", "MaxUsers", $iMaxUsers)); Maximum number of users who can simultaneously get/post
+    $DirectoryIndex=IniRead($sIniFile, "core", "DirectoryIndex", $DirectoryIndex)
+    $bAllowIndexes=IniRead($sIniFile, "core", "AllowIndexes", $bAllowIndexes)
+
+    $PHP_Path = IniRead($sIniFile, "PHP", "Path", $PHP_Path)
+    $AU3_Path = IniRead($sIniFile, "AU3", "Path", $AU3_Path)
 
     If $iMaxUsers<1 Then Exit MsgBox(0x10, "AutoIt HTTP Sever", "MaxUsers is less than one."&@CRLF&"The server will now close")
     If $DirectoryIndex = "" Then $DirectoryIndex = "index.html"
