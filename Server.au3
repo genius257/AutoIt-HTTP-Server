@@ -107,7 +107,7 @@ Func _HTTP_Server_Start()
                 ContinueLoop
             EndIf
 
-            Debug("Starting processing request on position: "&$x)
+            If (StringLen($sBuffer[$x])>0) Then Debug("Starting processing request on position: "&$x)
 
             Assign("x", $x, BitOR($ASSIGN_FORCEGLOBAL, $ASSIGN_EXISTFAIL)) ; NOTE $x is forced local, when used in For loop above. This gives issues when other functions need the $x value.
             $_HTTP_Server_Request_Handler($aSocket[$x], $sBuffer[$x])
