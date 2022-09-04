@@ -207,6 +207,10 @@ Func _HTTP_SendData($hSocket, $bData, $sMimeType, $sReply = $HTTP_STATUS_200, $s
     ;[set blocking mode]
     ;$aResult = DllCall("ws2_32.dll", 'int', 'ioctlsocket', 'int', $hSocket, 'long', 0x8004667E, 'ulong*', 0)
 
+    ;While True
+    ;    $aResult = DllCall("ws2_32.dll", 'int', 'recv', 'int', $hSocket, 'struct*', $tBuffer, 'int', 1024, 'int', 0)
+    ;WEnd
+
     ;$sPacket = Binary(@CRLF & @CRLF) ; Finish the packet
     ;TCPSend($hSocket,$sPacket)
 EndFunc
