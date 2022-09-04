@@ -667,8 +667,8 @@ Func _HTTP_Server_Request_Handle($hSocket, $sRequest)
                             ContinueCase
                         EndIf
                     Case FileExists($sLocalPath) ; makes sure the file that the user wants exists
-                        $iFileType = StringInStr($sLocalPath, ".", 0, -1)
-                        $sFileType = $iFileType>0 ? StringMid($sLocalPath,$iFileType+1) : ""
+                        Local $iFileType = StringInStr($sLocalPath, ".", 0, -1)
+                        Local $sFileType = $iFileType>0 ? StringMid($sLocalPath,$iFileType+1) : ""
                         If $sFileType = "php" And Not $PHP_Path = "" Then
                             _HTTP_GCI_PHP()
                         ElseIf $sFileType = "au3" And Not $AU3_Path = "" Then
