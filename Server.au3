@@ -30,7 +30,7 @@ Global $aSocket
 Global $sLocalPath
 
 #Region // DEFAULT OPTIONS HERE //
-    Global $sRootDir = _WinAPI_GetFullPathName(IniRead("settings.ini", "core", "RootDir", '.\www\')); The absolute path to the root directory of the server.
+    Global $sRootDir = _WinAPI_GetFullPathName('.\www\'); The absolute path to the root directory of the server.
     ;~ Global $sIP = @IPAddress1 ; ip address as defined by AutoIt
     ;~ Global $sIP = "127.0.0.1"
     Global $sIP = "0.0.0.0";	http://localhost/ and more
