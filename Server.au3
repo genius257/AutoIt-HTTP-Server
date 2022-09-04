@@ -96,7 +96,7 @@ Func _HTTP_Server_Start()
 
             $sNewData = BinaryToString($sNewData) ; Receives a whole lot of data if possible
 
-            Debug(VarGetType($sNewData)&"("&StringLen($sNewData)&"): "&$sNewData)
+            if (StringLen($sNewData)>0) Then Debug(VarGetType($sNewData)&"("&StringLen($sNewData)&"): "&$sNewData)
             $sBuffer[$x] &= $sNewData ;store it in the buffer
 
             If StringInStr(StringStripCR($sBuffer[$x]),@LF&@LF) Then ; if the request headers are ready ..
