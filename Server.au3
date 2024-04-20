@@ -185,7 +185,7 @@ Func _HTTP_SendData($hSocket, $bData, $sMimeType, $sReply = $HTTP_STATUS_200, $s
     Local $sPacket = Binary("HTTP/1.1 " & $sReply & @LF & _
     "Server: " & $sServerName & @LF & _
     "Connection: close" & @LF & _
-    "Content-Lenght: " & BinaryLen($bData) & @LF & _
+    "Content-Length: " & BinaryLen($bData) & @LF & _
     "Content-Type: " & $sMimeType & "; charset=UTF-8" & @LF & _
     (($sLastModified="")?"":"Last-Modified: "&$sLastModified&@LF)& _
     @LF)
